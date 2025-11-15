@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>User Dashoard</title>
+    </head>
+    <body>
+        <h1>My Dashoard</h1>
+        <p>Username: Hijab Ejaz</p>
+        <p>Email: Hijab@gmail.com</p>
+
+        <div>
+            <button id="Action1" onclick="showMessage()">Action 1</button>
+            <button id="Action2" onclick="showMessage()">Action 2</button>
+            <button id="Action3">Action 3</button>
+        </div>
+
+        <style>
+        #TrackList {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .track-card {
+            border: 1px solid #000000;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        </style>
+
+        <h2>My Tracks</h2>
+        <div id="TrackList">
+            <p>Loading your tracks...</p>
+        </div>
+
+        <script>
+            function showMessage() {
+                alert("Adding new track")
+            }
+
+            function startTrack(track_id) {
+                alert(`Starting track ${track_id}`);
+            }
+
+            const UserTracks = [
+                {track_id: 1, track_name: "Alphabets", progress : 10, image_path : "static/images/placeholder1.png"},
+                {track_id: 2, track_name: "Foods", progress : 10, image_path : "static/images/placeholder1.png"},
+                {track_id: 3, track_name: "Sports", progress : 10, image_path : "static/images/placeholder1.png"}
+            ]
+
+            function loadTracks() {
+                const container = document.getElementById("TrackList");
+
+                container.innerHTML = "";
+
+                if(UserTracks.length == 0) {
+                    container.innerHTML = "You are not enrolled in any tracks";
+                }
+
+                UserTracks.forEach(
+                    track => {
+                        const trackDiv = document.createElement("div");
+
+                        trackDiv.className = "track-card";
+
+                        trackDiv.innerHTML = `
+                            <img src="${track.image_path}" alt="${track.track_name}" style="width: 150px; height: 150px;">
+                            <p><strong>${track.track_name}</p>
+                            <div style="background: #e0e0e0; border-radius: 10px; height: 20px; width: 100%;">
+        <div style="background: #4CAF50; height: 100%; width: ${track.progress}%; border-radius: 10px;"></div>
+    </div>
+    <p>${track.progress}% Complete</p>
+                            <button onclick = "startTrack(${track.track_id})">Start</button> 
+                            <hr>
+                        `;
+
+                        container.appendChild(trackDiv);
+                    }
+                )
+            }
+
+            loadTracks();
+        </script>
+
+    </body>
+</html>
