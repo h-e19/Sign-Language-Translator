@@ -13,7 +13,8 @@
         <div>
             <button id="Action1" onclick="showMessage()">Action 1</button>
             <button id="Action2" onclick="showMessage()">Action 2</button>
-            <button id="go_back" onclick="window.location.href = '/'">Go back to index</button>
+            <button id="Action3">Action 3</button>
+            <button id="logout-btn" onclick="logout()" style="background: #ff4444; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Logout</button>
         </div>
 
         <style>
@@ -37,6 +38,13 @@
         </div>
 
         <script>
+            function logout() {
+                // Clear the firebase token cookie
+                document.cookie = 'firebase_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                // Redirect to login
+                window.location.href = '/login';
+            }
+
             function showMessage() {
                 alert("Adding new track")
             }
