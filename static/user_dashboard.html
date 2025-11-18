@@ -2,39 +2,160 @@
 <html>
     <head>
         <title>User Dashoard</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: 'Roboto', sans-serif;
+                background-color: #f5f5f5;
+            }
+            .navbar {
+                background-color: white;
+                border-bottom: 2px solid #e0e0e0;
+                padding: 20px 40px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+            .navbar h1 {
+                font-size: 28px;
+                font-weight: 600;
+                color: #333;
+            }
+
+            .navbar-buttons {
+                display: flex;
+                gap: 15px;
+            }
+            
+            .navbar-buttons button {
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+            }
+
+            #addTrack-btn {
+                background: #555555;
+                color: white;
+            }
+            
+            #addTrack-btn:hover {
+                background: #333333;
+            }
+            
+            #logout-btn {
+                background: #555555;
+                color: white;
+            }
+            
+            #logout-btn:hover {
+                background: #b54545;
+            }
+
+            .content {
+                padding: 40px;
+            }
+            
+            .user-info {
+                margin-bottom: 30px;
+            }
+            
+            h2 {
+                font-size: 24px;
+                font-weight: 600;
+                margin-bottom: 20px;
+                color: #333;
+            }
+            
+            #TrackList {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                margin-top: 20px;
+            }
+            
+            .track-card {
+                border-radius: 8px;
+                text-align: center;
+                width: 400px;
+                height: 500px;
+                position: relative;
+            }
+            
+            .track-card img {
+                object-fit: fill;
+            }
+            
+            .remove-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                color: rgb(0, 0, 0);
+                border: none;
+                border-radius: 50%;
+                width: 30px;
+                height: 30px;
+                cursor: pointer;
+                font-size: 18px;
+                line-height: 1;
+                font-weight: bold;
+                background-color:#D8B0B0;
+            }
+            
+            .remove-btn:hover {
+                background: #cf6565;
+            }
+            
+            .track-card button.start-btn {
+                color: rgb(0, 0, 0);
+                border: none;
+                padding: 8px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-top: 10px;
+                background: #e0e0e0;
+            }
+            
+            .track-card button.start-btn:hover {
+                background: #94C77F;
+            }
+
+            #action-btns {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                margin-top: 20px;
+            }
+        </style>
     </head>
     <body>
-        <div id="user">
-            <h1>My Dashoard</h1>
-            <p id="username"></p>
-            <p id="email"></p>
-        </div>
+        <nav class="navbar">
+            <h1>USER PROFILE</h1>
+            <div class="navbar-buttons">
+                <button id="addTrack-btn" onclick="showMessage()">Add Tracks</button>
+                <button id="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </nav>
 
-        <div>
-            <button id="Action1" onclick="showMessage()">Action 1</button>
-            <button id="Action2" onclick="showMessage()">Action 2</button>
-            <button id="Action3">Action 3</button>
-            <button id="logout-btn" onclick="logout()" style="background: #ff4444; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Logout</button>
-        </div>
+        <div class="content">
+            <div class="user-info">
+                <p id="email"></p>
+            </div>
 
-        <style>
-        #TrackList {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        
-        .track-card {
-            border: 1px solid #000000;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        </style>
-
-        <h2>My Tracks</h2>
-        <div id="TrackList">
-            <p>Loading your tracks...</p>
+            <h2>My Tracks</h2>
+            <div id="TrackList">
+                <p>Loading your tracks...</p>
+            </div>
         </div>
 
         <script>
@@ -49,55 +170,96 @@
                 alert("Adding new track")
             }
 
-            function startTrack(track_id) {
-                alert(`Starting track ${track_id}`);
+            async function removeTrack(track_id) {
+                if(!confirm("Are you sure you want to de-enroll from this track?"))
+                    return;
+
+                try {
+                    const response = await fetch(`/api/user/tracks/${track_id}`,
+                        {method: 'DELETE'}
+                    )
+
+                    if(!response.ok) {
+                        throw new Error("Failed to remove track");
+                    }
+
+                    alert("Track removed successfully");
+
+                    const tracks = await getUserTracks();
+                    displayUserTracks(tracks);
+                    
+                } catch (error) {
+                    console.error('Error: ', error);
+                    alert('Could not remove track');
+                }
             }
 
-            const UserTracks = [
-                {track_id: 1, track_name: "Alphabets", progress : 10, image_path : "static/images/placeholder1.png"},
-                {track_id: 2, track_name: "Foods", progress : 10, image_path : "static/images/placeholder1.png"},
-                {track_id: 3, track_name: "Sports", progress : 10, image_path : "static/images/placeholder1.png"}
-            ]
-
-            const User = [{
-                user_name: "Hijab",
-                user_email: "Hijab@gmail.com"
-            }]
-
-            function loadUserInfo() {
-                const container = document.getElementById("user");
-
-                let username = container.getElementById("username");
-                let email = container.getElementById("email");
-
-                username.innerHTML = `${User.user_name}`;
-                email.innerHTML = `${User.email}`;
+            async function getUserInfo() {
+                try {
+                    const response = await fetch('/api/user');
+                    
+                    // Check if the request was successful
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch user data');
+                    }
+                    
+                    const data = await response.json();
+                    return data;
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Could not load user information');
+                    return null;
+                } 
             }
 
-            function loadTracks() {
+            async function getUserTracks() {
+                try {
+                    const response = await fetch('/api/user/tracks');
+
+                    if (!response.ok) throw new Error("Failed to fetch user tracks");
+
+                    const data = await response.json();
+                    return data;
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Could not load user information');
+                    return null;
+                }
+            }
+
+            function displayUserInfo(user) {
+                // Get the elements directly (not from container)
+                const email = document.getElementById("email");
+                
+                // Update their content
+                email.innerHTML = `<strong>Email:</strong> ${user.user_email}`
+            }
+
+            function displayUserTracks(tracks) {
                 const container = document.getElementById("TrackList");
 
                 container.innerHTML = "";
 
-                if(UserTracks.length == 0) {
+                if(tracks.length == 0) {
                     container.innerHTML = "You are not enrolled in any tracks";
                 }
 
-                UserTracks.forEach(
+                tracks.forEach(
                     track => {
                         const trackDiv = document.createElement("div");
 
                         trackDiv.className = "track-card";
 
                         trackDiv.innerHTML = `
-                            <img src="${track.image_path}" alt="${track.track_name}" style="width: 150px; height: 150px;">
-                            <p><strong>${track.track_name}</p>
-                            <div style="background: #e0e0e0; border-radius: 10px; height: 20px; width: 100%;">
-        <div style="background: #4CAF50; height: 100%; width: ${track.progress}%; border-radius: 10px;"></div>
-    </div>
-    <p>${track.progress}% Complete</p>
-                            <button onclick = "startTrack(${track.track_id})">Start</button> 
-                            <hr>
+                            <button class="remove-btn" onclick="removeTrack(${track.track_id})">x</button>
+                            <img src="${track.image_path}" alt="${track.track_name}" style="width: 270px; height: 270px;">
+                            <p><strong style="font-size: 24px; font-weight: 700;">${track.track_name}</strong></p>                            <div style="background: #e0e0e0; border-radius: 10px; height: 20px; width: 69%; margin: 10px auto;">
+                            <div style="background: #94C77F; height: 100%; width: ${track.progress}%; border-radius: 10px;"></div>
+                            </div>
+                            <p>${track.progress}% Complete</p>
+                            <button class="start-btn" onclick="startTrack(${track.track_id})">Start</button> 
                         `;
 
                         container.appendChild(trackDiv);
@@ -105,7 +267,16 @@
                 )
             }
 
-            loadTracks();
+            async function initializeDashboard() {
+                const user = await getUserInfo();
+                if (user) {
+                    displayUserInfo(user);
+                }
+                const tracks = await getUserTracks();
+                displayUserTracks(tracks);
+            }
+
+            initializeDashboard();
         </script>
 
     </body>

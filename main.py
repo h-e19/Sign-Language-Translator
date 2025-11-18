@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi import HTTPException
 from pydantic import BaseModel
 from auth import get_current_user
 
@@ -41,3 +42,55 @@ def read_forgotpassword():
 @app.post("/")
 def process(tick: Tick):
     return {"message": f"This is processed tick: {tick.tick}"}
+
+#### API ENDPOINT ####
+@app.get("/api/user")
+async def get_user_info(request: Request):
+    # return current user info
+    try:
+        user = await get_current_user(request)
+
+        return {
+            "user_name": user.get("name", "Unkown"),
+            "user_email": user.get("email", "No email")
+        }
+    except Exception as e:
+        return {"error": "Failed to get user info"}, 401
+    
+@app.get("/api/user/tracks")
+async def get_user_tracks(request: Request):
+    """
+    Returns the current user's enrolled tracks
+    """
+    try:
+        user = await get_current_user(request)
+        
+        # TODO: Replace this with actual database query
+        # For now, returning dummy data
+        
+        user_tracks = [
+            {"track_id": 1, "track_name": "Alphabets", "progress": 10, "image_path": "static/images/placeholder1.png"},
+            {"track_id": 2, "track_name": "Foods", "progress": 25, "image_path": "static/images/placeholder1.png"},
+            {"track_id": 3, "track_name": "Sports", "progress": 50, "image_path": "static/images/placeholder1.png"}
+        ]
+        
+        return user_tracks
+        
+    except Exception as e:
+        return {"error": "Failed to get tracks"}, 401
+    
+@app.delete("/api/user/tracks/{track_id}")
+async def delete_user_track(request: Request, track_id: int):
+    try:
+        user = await get_current_user(request)
+
+        #TODO: Delete from Tracks_Enrolled
+        #something like DELETE FROM TRACKS_ENROLLED
+        #               WHERE LEARNER_ID = USER_ID AND TRACK_ID = track_id
+
+        #right now just do this
+        return {"message": f"Successfully removed track {track_id}"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Failed to remove track")
+    
