@@ -105,10 +105,6 @@ async def delete_user_track(request: Request, track_id: int):
     except Exception as e:
         raise HTTPException(status_code=401, detail="Failed to remove track")
 
-
-
-
-
 @app.get("/api/expert")
 async def get_expert_info(request: Request):
     # return current expert info
@@ -130,8 +126,8 @@ async def get_expert_tracks(request: Request):
     try:
         expert = await get_current_expert(request)
         
-        # TODO: Replace this with actual database query
-        # For now, returning dummy data
+        #TODO: Replace this with actual database query
+        #For now, returning dummy data
         
         expert_tracks = [
             {"track_id": 1, "track_name": "Planets", "image_path": "static/images/placeholder1.png"},

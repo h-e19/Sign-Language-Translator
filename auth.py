@@ -3,7 +3,7 @@ from firebase_admin import credentials, auth
 from fastapi import HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# Initialize Firebase Admin SDK
+#Initialize Firebase Admin SDK
 cred = credentials.Certificate("firebase-service-account.json")
 firebase_admin.initialize_app(cred)
 
