@@ -154,4 +154,4 @@ async def delete_expert_track(request: Request, track_id: int):
     
     except Exception as e:
         raise HTTPException(status_code=401, detail="Failed to remove track")
-    
+
