@@ -27,6 +27,16 @@ async def read_dashboard(request: Request):
     except:
         return RedirectResponse(url="/login", status_code=302)
 
+
+@app.get("/expert_dashboard")
+async def read_expert_dashboard(request: Request):
+    try:
+        user = await get_current_user(request)
+        return FileResponse("static/expert_dashboard.html")
+    except:
+        return RedirectResponse(url="/login", status_code=302)
+
+
 @app.get("/login")
 def read_login():
     return FileResponse("static/login.html")
