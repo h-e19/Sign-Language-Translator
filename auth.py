@@ -15,6 +15,7 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
         token = credentials.credentials
         decoded_token = auth.verify_id_token(token)
         return decoded_token
+    
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid authentication token: {str(e)}")
 
@@ -23,8 +24,10 @@ async def get_current_user(request: Request):
     token = request.cookies.get("firebase_token")
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
     try:
         decoded_token = auth.verify_id_token(token)
         return decoded_token
+    
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
