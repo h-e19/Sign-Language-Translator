@@ -138,7 +138,7 @@ async def get_expert_tracks(request: Request):
             {"track_id": 2, "track_name": "Books", "image_path": "static/images/placeholder1.png"},
             {"track_id": 3, "track_name": "Animals", "image_path": "static/images/placeholder1.png"},
             {"track_id": 4, "track_name": "Colors", "image_path": "static/images/placeholder1.png"}
-           
+        
         ]
         
         return expert_tracks
