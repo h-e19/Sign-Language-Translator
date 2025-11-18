@@ -6,8 +6,6 @@ from pydantic import BaseModel
 from auth import get_current_user
 from auth import get_current_expert
 
-
-
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")

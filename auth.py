@@ -44,4 +44,3 @@ async def get_current_expert(request: Request):
     
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
-    
