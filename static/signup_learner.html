@@ -142,77 +142,62 @@
             <button type="submit" id="signup-btn">Signup</button>
         </form>
         <div class="signup-link">
-            Already have an account? <a href="/login">Login</a>
+            Already have an account? <a href="/login/learner">Login</a>
         </div>
     </div>
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-    <script>
-        // Firebase config
+    <!-- Similar structure, but with name field -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
         const firebaseConfig = {
-            apiKey: "AIzaSyBZ_vrLtYP2H3-gmRA6m6zMzj4mk9wzWW8",
-            authDomain: "sign-language-translator-78dd6.firebaseapp.com",
-            projectId: "sign-language-translator-78dd6",
-            storageBucket: "sign-language-translator-78dd6.firebasestorage.app",
-            messagingSenderId: "231405675632",
-            appId: "1:231405675632:web:86faf82a210fa610f100b5"
+            apiKey: "AIzaSyC2rlfeMUUbfaYOOLtAE8GbLmsvNlk0hcQ",
+            authDomain: "open-palm.firebaseapp.com",
+            projectId: "open-palm",
+            storageBucket: "open-palm.firebasestorage.app",
+            messagingSenderId: "174112346608",
+            appId: "1:174112346608:web:5be5ea021be07b49034d35",
+            measurementId: "G-FMCBVWGC1G"
         };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const form = document.getElementById('signup-form');
 
-        // Handle signup form
-        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
+            
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('error-message');
-            const successDiv = document.getElementById('success-message');
-            const signupBtn = document.getElementById('signup-btn');
-
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'none';
-
-            signupBtn.disabled = true;
-            signupBtn.textContent = 'Creating account...';
 
             try {
-                // Create user with Firebase Auth
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                // Create user with Firebase
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-
-                // Add user to Firestore Learner collection
-                await db.collection('Learner').doc(user.uid).set({
-                    learner_id: user.uid,
-                    email: email,
-                    name: name
+                const idToken = await user.getIdToken();
+                
+                // Send to backend to create Firestore doc
+                const response = await fetch('/api/signup/learner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        idToken: idToken,
+                        name: name 
+                    })
                 });
 
-                // Get ID token
-                const token = await user.getIdToken();
-
-                // Store token in cookie
-                document.cookie = `firebase_token=${token}; path=/; max-age=3600; SameSite=Strict`;
-
-                successDiv.textContent = 'Account created successfully! Redirecting...';
-                successDiv.style.display = 'block';
-
-                // Redirect to dashboard after short delay
-                setTimeout(() => {
+                const data = await response.json();
+                
+                if (data.success) {
                     window.location.href = '/user_dashboard';
-                }, 1500);
+                } else {
+                    alert('Signup failed: ' + data.error);
+                }
             } catch (error) {
-                errorDiv.textContent = error.message;
-                errorDiv.style.display = 'block';
-                signupBtn.disabled = false;
-                signupBtn.textContent = 'Signup';
+                alert('Error: ' + error.message);
             }
         });
     </script>

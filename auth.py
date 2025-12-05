@@ -1,46 +1,111 @@
+# auth.py
 import firebase_admin
-from firebase_admin import credentials, auth
-from fastapi import HTTPException, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from firebase_admin import credentials, auth, firestore
+from datetime import datetime
 
-#Initialize Firebase Admin SDK
-cred = credentials.Certificate("firebase-service-account.json")
-firebase_admin.initialize_app(cred)
+# Initialize Firebase (do this ONCE, ideally in a separate config file)
+# Check if already initialized to avoid errors
+if not firebase_admin._apps:
+    cred = credentials.Certificate('serviceAccountKey.json')
+    firebase_admin.initialize_app(cred)
 
-security = HTTPBearer()
+# Get Firestore client
+db = firestore.client()
 
-async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Verify Firebase ID token from Authorization header"""
+def create_expert(email, password, name):
+    """Create expert user (server-side creation)"""
     try:
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        return decoded_token
-    
+        # Create auth user
+        user = auth.create_user(
+            email=email,
+            password=password
+        )
+        
+        # Create Firestore document
+        db.collection('users').document(user.uid).set({
+            'type': 'expert',
+            'name': name,
+            'email': email,
+            'tracks': [],
+            'createdAt': datetime.now()
+        })
+        
+        return {'success': True, 'uid': user.uid}
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid authentication token: {str(e)}")
+        return {'success': False, 'error': str(e)}
+    
+#TODO: phone number to be added to sign up
 
-async def get_current_user(request: Request):
-    """Get current user from cookie token"""
-    token = request.cookies.get("firebase_token")
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
+def create_learner(email, password, name):
+    """Create learner user (server-side creation)"""
     try:
-        decoded_token = auth.verify_id_token(token)
-        return decoded_token
-    
+        user = auth.create_user(
+            email=email,
+            password=password,
+            phone_number=0  # Firebase expects format: +1234567890
+        )
+        
+        db.collection('users').document(user.uid).set({
+            'type': 'learner',
+            'name': name,
+            'email': email,
+            'phoneNum': 0,
+            'enrolledTracks': [],
+            'createdAt': datetime.now()
+        })
+        
+        return {'success': True, 'uid': user.uid}
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+        return {'success': False, 'error': str(e)}
 
-async def get_current_expert(request: Request):
-    """Get current expert from cookie token"""
-    token = request.cookies.get("firebase_token")
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
+def verify_token(id_token):
+    """Verify Firebase ID token from frontend (client-side auth)"""
     try:
-        decoded_token = auth.verify_id_token(token)
-        return decoded_token
-    
+        decoded_token = auth.verify_id_token(id_token)
+        return {'success': True, 'uid': decoded_token['uid']}
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+        return {'success': False, 'error': str(e)}
+
+def get_user_data(uid):
+    """Get user document from Firestore"""
+    try:
+        doc = db.collection('users').document(uid).get()
+        if doc.exists:
+            return doc.to_dict()
+        return None
+    except Exception as e:
+        return None
+
+def create_learner_doc(uid, name, phoneNum):
+    """Create learner document (for client-side auth flow)"""
+    try:
+        # Get email from auth user
+        user = auth.get_user(uid)
+        
+        db.collection('users').document(uid).set({
+            'type': 'learner',
+            'name': name,
+            'email': user.email,
+            'phoneNum': phoneNum,
+            'enrolledTracks': [],
+            'createdAt': datetime.now()
+        })
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def create_expert_doc(uid, name):
+    """Create expert document (for client-side auth flow)"""
+    try:
+        user = auth.get_user(uid)
+        
+        db.collection('users').document(uid).set({
+            'type': 'expert',
+            'name': name,
+            'email': user.email,
+            'tracks': [],
+            'createdAt': datetime.now()
+        })
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
