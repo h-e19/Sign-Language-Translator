@@ -76,7 +76,7 @@ def get_user_data(uid):
     except Exception as e:
         return None
 
-def create_learner_doc(uid, name, phoneNum):
+def create_learner_doc(uid, name):
     """Create learner document (for client-side auth flow)"""
     try:
         # Get email from auth user
@@ -86,7 +86,7 @@ def create_learner_doc(uid, name, phoneNum):
             'type': 'learner',
             'name': name,
             'email': user.email,
-            'phoneNum': phoneNum,
+            'phoneNum': 0,
             'enrolledTracks': [],
             'createdAt': datetime.now()
         })

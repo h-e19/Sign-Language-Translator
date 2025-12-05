@@ -159,11 +159,24 @@
         </div>
 
         <script>
-            function logout() {
-                // Clear the firebase token cookie
-                document.cookie = 'firebase_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                // Redirect to login
-                window.location.href = '/login';
+            async function logout() {
+                try {
+                    // Call backend to clear session cookie
+                    const response = await fetch('/api/logout', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        // Redirect to landing page
+                        window.location.href = '/';
+                    } else {
+                        alert('Logout failed');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    // Even if there's an error, redirect to landing
+                    window.location.href = '/';
+                }
             }
 
             function showMessage() {
