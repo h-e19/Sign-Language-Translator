@@ -180,11 +180,14 @@
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
                 
-                // Get ID token
+                // IMPORTANT: Force token refresh for login
+                await user.getIdToken(true); // Force refresh with 'true'
                 const idToken = await user.getIdToken();
                 
+                console.log('Token obtained:', idToken.substring(0, 20) + '...'); // DEBUG
+                
                 // Send token to backend to create session
-                const response = await fetch('/api/login/learner', {
+                const response = await fetch('/api/login/learner', { // Change to /api/login/expert for expert page
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -192,16 +195,19 @@
                     body: JSON.stringify({ idToken: idToken })
                 });
 
+                console.log('Response status:', response.status); // DEBUG
                 const data = await response.json();
+                console.log('Response data:', data); // DEBUG
                 
                 if (data.success) {
                     // Redirect based on user type
-                    window.location.href = '/user_dashboard';
+                    window.location.href = '/user_dashboard'; // Change to /expert_dashboard for expert page
                 } else {
                     errorMessage.style.display = 'block';
                     errorMessage.textContent = data.error || 'Login failed';
                 }
             } catch (error) {
+                console.error('Full error:', error); // DEBUG
                 errorMessage.style.display = 'block';
                 errorMessage.textContent = error.message;
             }
