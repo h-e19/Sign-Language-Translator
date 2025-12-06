@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from pydantic import BaseModel
+from typing import List, Optional
 import auth
 import tracks
 
@@ -17,6 +18,11 @@ class LoginRequest(BaseModel):
 class SignupRequest(BaseModel):
     idToken: str
     name: str
+
+class CreateTrackRequest(BaseModel):
+    trackName: str
+    description: str
+    mediaUrls: Optional[List[str]] = []
 
 @app.get("/")
 def read_root():
@@ -41,6 +47,10 @@ def read_signup_expert():
 @app.get("/forgotpassword")
 def read_forgotpassword():
     return FileResponse("static/forgotpassword.html")
+
+@app.get("/tracklist")
+def read_forgotpassword():
+    return FileResponse("static/tracklist.html")
 
 @app.post("/api/login/learner")
 async def login_learner(request: LoginRequest, response: Response):
@@ -268,5 +278,133 @@ async def remove_track(track_id: int, request: Request):
             return {"success": True, "message": "Track removed"}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/expert")
+async def get_expert_info(request: Request):
+    """Get current expert's information"""
+    token = request.cookies.get("session_token")
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        result = auth.verify_token(token)
+        
+        if result['success']:
+            uid = result['uid']
+            user_data = auth.get_user_data(uid)
+
+            print(f"User data from Firestore: {user_data}")
+            
+            if not user_data:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            return {
+                "success": True,
+                "name": user_data.get('name'),
+                "email": user_data.get('email'),
+                "type": user_data.get('type')
+            }
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/expert/tracks")
+async def get_expert_tracks(request: Request):
+    """Get user's tracks"""
+    token = request.cookies.get("session_token")
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        result = auth.verify_token(token)
+        if result['success']:
+            uid = result['uid']
+            user_data = auth.get_user_data(uid)
+            
+            if user_data:
+                # For expert, get Tracks
+                tracks = user_data.get('tracks', [])
+                return {"success": True, "tracks": tracks}
+            else:
+                raise HTTPException(status_code=404, detail="User not found")
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    
+@app.post("/api/expert/tracks")
+async def add_expert_track(track_data: CreateTrackRequest, request: Request):
+    """Expert creates a new track"""
+    token = request.cookies.get("session_token")
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        result = auth.verify_token(token)
+        
+        if result['success']:
+            uid = result['uid']
+            
+            user_data = auth.get_user_data(uid)
+            if user_data.get('type') != 'expert':
+                raise HTTPException(status_code=403, detail="Only experts can create tracks")
+            
+            # Create the track
+            track_result = tracks.create_track(
+                uid, 
+                track_data.trackName, 
+                track_data.description, 
+                track_data.mediaUrls
+            )
+            
+            if track_result['success']:
+                return {
+                    "success": True, 
+                    "trackId": track_result['trackId'],
+                    "message": "Track created successfully"
+                }
+            else:
+                raise HTTPException(status_code=500, detail=track_result.get('error', 'Failed to create track'))
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+            
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.delete("/api/expert/tracks/{track_id}")
+async def delete_track(track_id: str, request: Request):
+    """Delete a track"""
+    token = request.cookies.get("session_token")
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        result = auth.verify_token(token)
+        
+        if result['success']:
+            uid = result['uid']
+            
+            # Delete the track
+            delete_result = tracks.delete_track(uid, track_id)
+            
+            if delete_result['success']:
+                return {"success": True, "message": "Track deleted"}
+            else:
+                raise HTTPException(status_code=500, detail=delete_result.get('error'))
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

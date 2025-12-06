@@ -243,248 +243,272 @@
                 background-color: #333333;
             }
         </style>
-    </head>
-    <body>
-        <nav class="navbar">
-            <h1>EXPERT PROFILE</h1>
-            <div class="navbar-buttons">
-                <button id="addTrack-btn">Add Tracks</button>
-                <button id="logout-btn" onclick="logout()">Log out</button>
-            </div>
-        </nav>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>EXPERT PROFILE</h1>
+        <div class="navbar-buttons">
+            <button id="addTrack-btn">Add Tracks</button>
+            <button id="logout-btn" onclick="logout()">Log out</button>
+        </div>
+    </nav>
 
-        <div class="content">
-            <div class="user-info">
-                <p id="email"></p>
-            </div>
-
-            <h2>My Tracks</h2>
-            <div id="TrackList">
-                <p>Loading your tracks...</p>
-            </div>
+    <div class="content">
+        <div class="user-info">
+            <p id="email"></p>
         </div>
 
-        <!-- Add Track Modal -->
-        <div id="addTrackModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Add New Track</h2>
-                    <button class="close-btn">&times;</button>
+        <h2>My Tracks</h2>
+        <div id="TrackList">
+            <p>Loading your tracks...</p>
+        </div>
+    </div>
+
+    <!-- Add Track Modal -->
+    <div id="addTrackModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Track</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <form id="addTrackForm">
+                <div class="form-group">
+                    <label for="trackName">Track Name</label>
+                    <input type="text" id="trackName" name="trackName" required>
                 </div>
-                <form id="addTrackForm">
-                    <div class="form-group">
-                        <label for="trackName">Track Name</label>
-                        <input type="text" id="trackName" name="trackName" required>
-                    </div>
-                    <div class="modal-buttons">
-                        <button type="button" id="cancel-btn">Cancel</button>
-                        <button type="submit" id="submit-track-btn">Add Track</button>
-                    </div>
-                </form>
-            </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="4" required></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" id="cancel-btn">Cancel</button>
+                    <button type="submit" id="submit-track-btn">Add Track</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <script>
-            
-            const addTrackBtn = document.getElementById('addTrack-btn');
-            const addTrackModal = document.getElementById('addTrackModal');
-            const closeBtn = document.querySelector('.close-btn');
-            const cancelBtn = document.getElementById('cancel-btn');
-            const addTrackForm = document.getElementById('addTrackForm');
+    <script>
+        const addTrackBtn = document.getElementById('addTrack-btn');
+        const addTrackModal = document.getElementById('addTrackModal');
+        const closeBtn = document.querySelector('.close-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const addTrackForm = document.getElementById('addTrackForm');
 
-            
-            let allTracks = [];
+        let allTracks = [];
 
-            // Event Listeners for Modal
-            addTrackBtn.addEventListener('click', () => {
-                addTrackModal.style.display = 'flex';
-            });
+        // Event Listeners for Modal
+        addTrackBtn.addEventListener('click', () => {
+            addTrackModal.style.display = 'flex';
+        });
 
-            closeBtn.addEventListener('click', () => {
+        closeBtn.addEventListener('click', () => {
+            addTrackModal.style.display = 'none';
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            addTrackModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === addTrackModal) {
                 addTrackModal.style.display = 'none';
-            });
+            }
+        });
 
-            cancelBtn.addEventListener('click', () => {
-                addTrackModal.style.display = 'none';
-            });
-
+        // ===== MODIFIED: Submit track to backend =====
+        addTrackForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
             
-            window.addEventListener('click', (event) => {
-                if (event.target === addTrackModal) {
-                    addTrackModal.style.display = 'none';
-                }
-            });
-
+            const trackName = document.getElementById('trackName').value;
+            const description = document.getElementById('description').value;
             
-            addTrackForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                
-                
-                const trackName = document.getElementById('trackName').value;
-                
-                try {
-                    //creates new track object with default placeholder image
-                    const newTrack = {
-                        track_id: Date.now(), //using timestamp as temporary ID
-                        track_name: trackName,
-                        image_path: "static/images/placeholder1.png" 
-                    };
-                    
-                    
-                    allTracks.push(newTrack);
-                    
-                    
-                    displayExpertTracks(allTracks);
-                    
-                    
-                    alert(`Track "${trackName}" added successfully!`);
-                    
-                    
-                    addTrackForm.reset();
-                    addTrackModal.style.display = 'none';
-                    
-                } catch (error) {
-                    console.error('Error adding track:', error);
-                    alert('Could not add track');
-                }
-            });
-
-            async function logout() {
-                try {
-                    // Call backend to clear session cookie
-                    const response = await fetch('/api/logout', {
-                        method: 'POST'
-                    });
-                    
-                    if (response.ok) {
-                        // Redirect to landing page
-                        window.location.href = '/';
-                    } else {
-                        alert('Logout failed');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    // Even if there's an error, redirect to landing
-                    window.location.href = '/';
-                }
-            }
-            async function deleteTrack(track_id) {
-                if(!confirm("Are you sure you want to delete this track?"))
-                    return;
-
-                try {
-                    
-                    const response = await fetch(`/api/expert/tracks/${track_id}`, {method: 'DELETE'});
-
-                    if(!response.ok) {
-                        throw new Error("Failed to delete track");
-                    }
-
-                    
-                    allTracks = allTracks.filter(track => track.track_id !== track_id);
-                    
-                    alert("Track deleted successfully");
-
-                   
-                    displayExpertTracks(allTracks);
-                    
-                } catch (error) {
-                    console.error('Error: ', error);
-                    alert('Could not delete track');
-                }
-            }
-
-            async function getExpertInfo() {
-                try {
-                    const response = await fetch('/api/expert');
-                    
-                    
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch expert data');
-                    }
-                    
-                    const data = await response.json();
-                    return data;
-                    
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Could not load expert information');
-                    return null;
-                } 
-            }
-
-            async function getExpertTracks() {
-                try {
-                    const response = await fetch('/api/expert/tracks');
-
-                    if (!response.ok) throw new Error("Failed to fetch expert tracks");
-
-                    const data = await response.json();
-                    return data;
-
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Could not load expert information');
-                    return null;
-                }
-            }
-
-            function displayExpertInfo(expert) {
-                // Get the elements directly (not from container)
-                const email = document.getElementById("email");
-                
-                // Update their content
-                email.innerHTML = `<strong>Email:</strong> ${expert.expert_email}`
-            }
-
-            function displayExpertTracks(tracks) {
-                const container = document.getElementById("TrackList");
-
-                container.innerHTML = "";
-
-                if(tracks.length == 0) {
-                    container.innerHTML = "<p>You have not uploaded any tracks</p>";
-                    return;
-                }
-
-                tracks.forEach(track => {
-                    const trackDiv = document.createElement("div");
-                    trackDiv.className = "track-card";
-
-                    trackDiv.innerHTML = `
-                        <img src="${track.image_path}" alt="${track.track_name}" style="width: 270px; height: 270px;">
-                        <p><strong style="font-size: 24px; font-weight: 700;">${track.track_name}</strong></p>    
-                        <button class="update-btn" onclick="updateTrack(${track.track_id})">Update</button> 
-                        <button class="delete-btn" onclick="deleteTrack(${track.track_id})">Delete</button>
-                    `;
-
-                    container.appendChild(trackDiv);
+            try {
+                // Send to backend API
+                const response = await fetch('/api/expert/tracks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        trackName: trackName,
+                        description: description,
+                        mediaUrls: []  // Empty for now, can add file upload later
+                    })
                 });
-            }
 
-            async function initializeDashboard() {
-                const expert = await getExpertInfo();
-                if (expert) {
-                    displayExpertInfo(expert);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to add track');
+                }
+
+                const data = await response.json();
+                
+                alert(`Track "${trackName}" added successfully!`);
+                
+                // Reset form and close modal
+                addTrackForm.reset();
+                addTrackModal.style.display = 'none';
+                
+                // Reload tracks from backend
+                await loadExpertTracks();
+                
+            } catch (error) {
+                console.error('Error adding track:', error);
+                alert('Could not add track: ' + error.message);
+            }
+        });
+
+        async function logout() {
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    alert('Logout failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // ===== MODIFIED: Delete track via backend =====
+        async function deleteTrack(trackId) {
+            if(!confirm("Are you sure you want to delete this track?"))
+                return;
+
+            try {
+                const response = await fetch(`/api/expert/tracks/${trackId}`, {
+                    method: 'DELETE'
+                });
+
+                if(!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Failed to delete track");
+                }
+
+                alert("Track deleted successfully");
+
+                // Reload tracks from backend
+                await loadExpertTracks();
+                
+            } catch (error) {
+                console.error('Error: ', error);
+                alert('Could not delete track: ' + error.message);
+            }
+        }
+
+        // ===== MODIFIED: Get expert info from backend =====
+        async function getExpertInfo() {
+            try {
+                const response = await fetch('/api/expert');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch expert data');
                 }
                 
-                // Get tracks from API
-                const apiTracks = await getExpertTracks();
+                const data = await response.json();
                 
-                // Combine API tracks with any locally added tracks
-                // Filter out any duplicates based on track_id
-                const apiTrackIds = new Set(apiTracks?.map(track => track.track_id) || []);
-                const localTracks = allTracks.filter(track => !apiTrackIds.has(track.track_id));
+                // DEBUG: See what we actually received
+                console.log('Expert data received:', data);
+                console.log('Email value:', data.email);
                 
-                // Update allTracks with the combination
-                allTracks = [...(apiTracks || []), ...localTracks];
+                return data;
                 
-                // Display all tracks
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Could not load expert information');
+                return null;
+            } 
+        }
+
+        function displayExpertInfo(expert) {
+            const email = document.getElementById("email");
+            
+            // DEBUG: Check what we're trying to display
+            console.log('Displaying expert:', expert);
+            console.log('Email to display:', expert.email);
+            
+            email.innerHTML = `<strong>Email:</strong> ${expert.email}`;
+        }
+
+        // ===== MODIFIED: Get tracks from backend =====
+        async function loadExpertTracks() {
+            try {
+                const response = await fetch('/api/expert/tracks');
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch expert tracks");
+                }
+
+                const data = await response.json();
+                
+                // Store tracks globally
+                allTracks = data.tracks || [];
+                
+                // Display them
                 displayExpertTracks(allTracks);
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('TrackList').innerHTML = '<p>Could not load tracks</p>';
+            }
+        }
+
+        function displayExpertInfo(expert) {
+            const email = document.getElementById("email");
+            email.innerHTML = `<strong>Email:</strong> ${expert.email}`;
+        }
+
+        // ===== MODIFIED: Display tracks with correct field names =====
+        function displayExpertTracks(tracks) {
+            const container = document.getElementById("TrackList");
+
+            container.innerHTML = "";
+
+            if(tracks.length == 0) {
+                container.innerHTML = "<p>You have not uploaded any tracks</p>";
+                return;
             }
 
-            // Initialize the dashboard when the page loads
-            initializeDashboard();
-        </script>
-    </body>
+            tracks.forEach(track => {
+                const trackDiv = document.createElement("div");
+                trackDiv.className = "track-card";
+
+                // Use placeholder image for now
+                const imagePath = track.mediaUrls && track.mediaUrls[0] 
+                    ? track.mediaUrls[0] 
+                    : "static/images/placeholder1.png";
+
+                trackDiv.innerHTML = `
+                    <img src="${imagePath}" alt="${track.trackName}" style="width: 270px; height: 270px;">
+                    <p><strong style="font-size: 24px; font-weight: 700;">${track.trackName}</strong></p>
+                    <p style="font-size: 14px; color: #666;">${track.description || 'No description'}</p>
+                    <button class="delete-btn" onclick="deleteTrack('${track.trackId}')">Delete</button>
+                `;
+
+                container.appendChild(trackDiv);
+            });
+        }
+
+        // ===== MODIFIED: Initialize dashboard =====
+        async function initializeDashboard() {
+            // Get expert info
+            const expert = await getExpertInfo();
+            if (expert) {
+                displayExpertInfo(expert);
+            }
+            
+            // Load tracks from backend
+            await loadExpertTracks();
+        }
+
+        // Initialize the dashboard when the page loads
+        initializeDashboard();
+    </script>
+</body>
 </html>
