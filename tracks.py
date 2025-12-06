@@ -89,7 +89,8 @@ def enroll_in_track(learner_id, track_id, expert_id):
         'expertId': expert_id,
         'trackName': track['trackName'],
         'progress': 0,
-        'enrolledAt': firestore.SERVER_TIMESTAMP
+        'enrolledAt': datetime.now()
+        # 'enrolledAt': firestore.SERVER_TIMESTAMP
     }
     
     # Add to learner's enrollments
@@ -106,6 +107,22 @@ def get_learner_tracks(learner_id):
     learner_data = learner_ref.get().to_dict()
     
     return learner_data.get('enrolledTracks', [])
+
+def get_track_by_id(track_id):
+    experts = db.collection('users').where('type', '==', 'expert').stream()
+    for expert in experts:
+        expert_data = expert.to_dict()
+        for track in expert_data.get('tracks', []):
+            if track['trackId'] == track_id:
+                return {
+                    "trackId": track.get("trackId"),
+                    "track_name": track.get("trackName"),             # map correctly
+                    "image_path": track.get("mediaUrls")[0] if track.get("mediaUrls") else "static/images/placeholder1.png",
+                    "expertId": expert.id,
+                    "expertName": expert_data.get("name")
+                }
+    return None
+
 
 def update_progress(learner_id, track_id, new_progress):
     """Update learner's progress on a track"""

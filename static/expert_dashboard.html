@@ -401,6 +401,9 @@
                 alert('Could not delete track: ' + error.message);
             }
         }
+        async function editTrack(trackId) {
+            window.location.href = `/trackedit?trackId=${trackId}`;
+        }
 
         // ===== MODIFIED: Get expert info from backend =====
         async function getExpertInfo() {
@@ -488,7 +491,10 @@
                     <img src="${imagePath}" alt="${track.trackName}" style="width: 270px; height: 270px;">
                     <p><strong style="font-size: 24px; font-weight: 700;">${track.trackName}</strong></p>
                     <p style="font-size: 14px; color: #666;">${track.description || 'No description'}</p>
-                    <button class="delete-btn" onclick="deleteTrack('${track.trackId}')">Delete</button>
+                    <div style="display:flex; justify-content:center; gap:15px; margin-top:10px;">
+                        <button class="update-btn" onclick="editTrack('${track.trackId}')">Edit</button>
+                        <button class="delete-btn" onclick="deleteTrack('${track.trackId}')">Delete</button>
+                    </div>
                 `;
 
                 container.appendChild(trackDiv);

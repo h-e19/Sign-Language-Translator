@@ -142,7 +142,7 @@
         <nav class="navbar">
             <h1>USER PROFILE</h1>
             <div class="navbar-buttons">
-                <button id="addTrack-btn" onclick="showMessage()">Add Tracks</button>
+                <!-- <button id="addTrack-btn" onclick="showMessage()">Add Tracks</button> -->
                 <button id="logout-btn" onclick="logout()">Logout</button>
                 <button id="browseTracks-btn" onclick="window.location.href = '/tracklist'">Browse All Tracks</button>
             </div>
@@ -192,15 +192,15 @@
                     const response = await fetch(`/api/user/tracks/${track_id}`,
                         {method: 'DELETE'}
                     )
-
-                    if(!response.ok) {
-                        throw new Error("Failed to remove track");
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.detail || "Failed to remove track");
                     }
 
                     alert("Track removed successfully");
 
                     const tracks = await getUserTracks();
-                    displayUserTracks(tracks);
+                    displayUserTracks(tracks || []);
                     
                 } catch (error) {
                     console.error('Error: ', error);
@@ -267,15 +267,14 @@
                         trackDiv.className = "track-card";
 
                         trackDiv.innerHTML = `
-                            <button class="remove-btn" onclick="removeTrack(${track.track_id})">x</button>
+                            <button class="remove-btn" onclick="removeTrack('${track.track_id}')">x</button>
                             <img src="${track.image_path}" alt="${track.track_name}" style="width: 270px; height: 270px;">
                             <p><strong style="font-size: 24px; font-weight: 700;">${track.track_name}</strong></p>                            <div style="background: #e0e0e0; border-radius: 10px; height: 20px; width: 69%; margin: 10px auto;">
                             <div style="background: #94C77F; height: 100%; width: ${track.progress}%; border-radius: 10px;"></div>
                             </div>
                             <p>${track.progress}% Complete</p>
-                            <button class="start-btn" onclick="startTrack(${track.track_id})">Start</button> 
+                            <button class="start-btn" onclick="startTrack('${track.track_id}')">Start</button> 
                         `;
-
                         container.appendChild(trackDiv);
                     }
                 )
@@ -287,7 +286,7 @@
                     displayUserInfo(user);
                 }
                 const tracks = await getUserTracks();
-                displayUserTracks(tracks);
+                displayUserTracks(tracks || []);
             }
 
             initializeDashboard();

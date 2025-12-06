@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f6f8;
+            margin: 0;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+        }
+
+        .track-img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #eee;
+        }
+
+        .enrolled {
+            border: 2px solid #28a745;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .tag {
+            margin-top: 8px;
+            font-weight: bold;
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align:center; margin-bottom: 20px;">
+        <button onclick="goBack()" style="padding:10px 20px; border:none; border-radius:6px; background:#555; color:white; cursor:pointer;">
+            Back to Profile
+        </button>
+    </div>
+
+    <h1>Available Tracks</h1>
+    <div id="container" class="container"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", loadTracks);
+        function goBack() {
+            window.location.href = '/user_dashboard';
+        }
+        async function loadTracks() {
+            try {
+                const tracksRes = await fetch("/api/tracks");
+                const enrollRes = await fetch("/api/user/enrollments");
+
+                const tracksData = await tracksRes.json();
+                const enrolledData = await enrollRes.json();
+                const enrolledTrackIds = enrolledData.enrolledTracks.map(t => t.trackId);
+
+                renderTracks(tracksData.tracks, enrolledTrackIds);
+            } catch (err) {
+                console.error("Error:", err);
+                const container = document.getElementById("container");
+                container.innerHTML = "<h3>Failed to load tracks.</h3>";
+            }
+        }
+
+        function renderTracks(tracks, enrolledTrackIds) {
+            const container = document.getElementById("container");
+            container.innerHTML = "";
+
+            if (!tracks.length) {
+                container.innerHTML = "<h3>No tracks available yet</h3>";
+                return;
+            }
+
+            tracks.forEach(track => {
+                const isEnrolled = enrolledTrackIds.includes(track.trackId);
+
+                const image = (track.mediaUrls && track.mediaUrls.length > 0)
+                    ? track.mediaUrls[0]
+                    : "/static/images/placeholder1.png";
+
+                container.innerHTML += `
+                    <div class="card ${isEnrolled ? "enrolled" : ""}">
+                        <img src="${image}" class="track-img" alt="Track">
+                        <h3>${track.trackName}</h3>
+                        <p>${track.description}</p>
+                        <p style="font-size:12px;color:#555;">By ${track.expertName}</p>
+
+                        ${
+                            isEnrolled
+                            ? `<div class="tag">Already Enrolled ✓</div>`
+                            : `<button onclick="enroll('${track.trackId}', '${track.expertId}')">Enroll</button>`
+                        }
+                    </div>
+                `;
+            });
+        }
+
+        async function enroll(trackId, expertId) {
+            try {
+                const res = await fetch("/api/user/enrollments", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ trackId, expertId })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    alert(data.detail || data.error|| "Failed to enroll");
+                    return;
+                }
+
+                alert("Enrolled successfully!");
+                loadTracks();
+            } catch (err) {
+                console.error("Enrollment error:",err);
+                alert("Error enrolling in track.");
+            }
+        }
+    </script>
+
+</body>
+</html>

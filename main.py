@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, Request, Response
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
+from fastapi import Body
 from pydantic import BaseModel
 from typing import List, Optional
 import auth
@@ -49,8 +50,12 @@ def read_forgotpassword():
     return FileResponse("static/forgotpassword.html")
 
 @app.get("/tracklist")
-def read_forgotpassword():
+def read_tracklist():
     return FileResponse("static/tracklist.html")
+
+@app.get("/trackedit")
+def read_trackedit():
+    return FileResponse("static/trackedit.html")
 
 @app.post("/api/login/learner")
 async def login_learner(request: LoginRequest, response: Response):
@@ -232,35 +237,31 @@ async def get_user_tracks(request: Request):
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    try:
-        result = auth.verify_token(token)
-        if result['success']:
-            uid = result['uid']
-            user_data = auth.get_user_data(uid)
-            
-            if user_data:
-                # For learners, get enrolledTracks
-                track_ids = user_data.get('enrolledTracks', [])
-                
-                # TODO: Fetch actual track details from your tracks collection
-                # For now, return empty list or mock data
-                tracks = []
-                
-                # If you have a tracks module/function to get track details:
-                # for track_id in track_ids:
-                #     track_info = tracks.get_track_by_id(track_id)
-                #     tracks.append(track_info)
-                
-                return tracks
-            else:
-                raise HTTPException(status_code=404, detail="User not found")
-        else:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    result = auth.verify_token(token)
+    if not result['success']:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    learner_id = result['uid']
+    
+    # Get enrolled track IDs
+    enrolled_tracks = tracks.get_learner_tracks(learner_id)
+    
+    # Fetch full track details for each enrolled track
+    track_details = []
+    for t in enrolled_tracks:
+        track_info = tracks.get_track_by_id(t['trackId'])
+        if track_info:
+            track_details.append({
+                "track_id": track_info.get("trackId"),
+                "track_name": track_info.get("track_name"),
+                "image_path": track_info.get("image_path"),
+                "progress": t.get("progress", 0)
+            })
+
+    return track_details
 
 @app.delete("/api/user/tracks/{track_id}")
-async def remove_track(track_id: int, request: Request):
+async def remove_track(track_id: str, request: Request):
     """Remove a track from user's enrolled tracks"""
     token = request.cookies.get("session_token")
     
@@ -272,8 +273,8 @@ async def remove_track(track_id: int, request: Request):
         if result['success']:
             uid = result['uid']
             
-            # TODO: Implement the actual removal logic in your auth.py or tracks.py
-            # auth.remove_user_track(uid, track_id)
+            #  Implement the actual removal logic in your auth.py or tracks.py
+            auth.remove_user_track(uid, track_id)
             
             return {"success": True, "message": "Track removed"}
         else:
@@ -408,3 +409,58 @@ async def delete_track(track_id: str, request: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+      
+# get all tracks
+@app.get("/api/tracks")
+async def api_get_all_tracks():
+    all_tracks = tracks.get_all_tracks()
+    return {"tracks": all_tracks}
+
+# learner's enrolled tracks
+@app.get("/api/user/enrollments")
+async def api_get_user_enrollments(request: Request):
+    token = request.cookies.get("session_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    result = auth.verify_token(token)
+    if not result['success']:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    uid = result['uid']
+    enrolled_tracks = tracks.get_learner_tracks(uid)
+    return {"enrolledTracks": enrolled_tracks}
+
+@app.post("/api/user/enrollments")
+async def api_enroll_in_track(request: Request, payload: dict = Body(...)):
+    """Enroll learner in a track"""
+    token = request.cookies.get("session_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # Verify token
+    result = auth.verify_token(token)
+    if not result['success']:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    learner_id = result['uid']
+    track_id = payload.get("trackId")
+    expert_id = payload.get("expertId")
+
+    if not track_id or not expert_id:
+        raise HTTPException(status_code=400, detail="trackId and expertId required")
+
+    # Call tracks.py function
+    res = tracks.enroll_in_track(learner_id, track_id, expert_id)
+    if not res['success']:
+        raise HTTPException(status_code=400, detail=res['error'])
+
+    return res
+
+# get track to edit in trackedit
+@app.get("/api/expert/tracks/{track_id}")
+def get_track(track_id: str):
+    track = tracks.get_track_by_id(track_id)  
+    if not track:
+        raise HTTPException(status_code=404, detail="Track not found")
+    return track

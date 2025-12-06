@@ -7,6 +7,7 @@ from datetime import datetime
 # Check if already initialized to avoid errors
 if not firebase_admin._apps:
     cred = credentials.Certificate('serviceAccountKey.json')
+    # cred = credentials.Certificate('firebase-service-account.json')
     firebase_admin.initialize_app(cred)
 
 # Get Firestore client
@@ -109,3 +110,29 @@ def create_expert_doc(uid, name):
         return {'success': True}
     except Exception as e:
         return {'success': False, 'error': str(e)}
+    
+def remove_user_track(uid, track_id: int) -> bool:
+    try:
+        user_ref = db.collection('users').document(uid)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            return False
+
+        user_data = user_doc.to_dict()
+        enrolled_tracks = user_data.get('enrolledTracks', [])
+
+        # Filter out the track to remove
+        updated_tracks = [t for t in enrolled_tracks if t.get('trackId') != track_id]
+
+        if len(updated_tracks) == len(enrolled_tracks):
+            # Track not found
+            return False
+
+        # Update Firestore
+        user_ref.update({'enrolledTracks': updated_tracks})
+        return True
+
+    except Exception as e:
+        print("Error removing track:", e)
+        return False
