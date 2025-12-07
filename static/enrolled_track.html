@@ -418,9 +418,28 @@
         let currentMediaIndex = -1;
         let completedMedia = [];
 
-        async function loadTrackData() {
+        // Check authentication first
+        async function checkAuth() {
             try {
-                const response = await fetch(`/api/user/tracks/${encodeURIComponent(trackId)}`);
+                const response = await fetch('/api/user');
+                if (!response.ok) {
+                    throw new Error('Not authenticated');
+                }
+                return true;
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                alert('Please login to view this track');
+                window.location.href = '/login/learner';
+                return false;
+            }
+        }
+
+        async function loadTrackData() {
+            // Check auth before loading track data
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) return;
+            try {
+                const response = await fetch(`/api/user/tracks/${trackId}`);
                 if (!response.ok) throw new Error('Failed to load track');
 
                 trackData = await response.json();

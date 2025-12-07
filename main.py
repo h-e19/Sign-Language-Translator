@@ -649,3 +649,19 @@ async def update_track(track_id: str, data: dict = Body(...), request: Request =
     if not res['success']:
         raise HTTPException(status_code=400, detail=res.get('error', 'Failed to update'))
     return {"success": True}
+
+@app.get("/enrolledtrack")
+async def read_enrolled_track(request: Request):
+    token = request.cookies.get("session_token")
+    
+    if not token:
+        return RedirectResponse(url="/login/learner", status_code=302)
+    
+    try:
+        result = auth.verify_token(token)
+        if result['success']:
+            return FileResponse("static/enrolled_track.html")
+        else:
+            return RedirectResponse(url="/login/learner", status_code=302)
+    except:
+        return RedirectResponse(url="/login/learner", status_code=302)
