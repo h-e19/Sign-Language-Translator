@@ -51,7 +51,8 @@
 
         input[type="text"],
         input[type="email"],
-        input[type="password"] {
+        input[type="password"],
+        input[type="tel"] {
             width: 100%;
             padding: 15px;
             border: 2px solid rgba(255, 255, 255, 0.15);
@@ -64,10 +65,53 @@
 
         input[type="text"]:focus,
         input[type="email"]:focus,
-        input[type="password"]:focus {
+        input[type="password"]:focus,
+        input[type="tel"]:focus {
             outline: none;
             border-color: #61929e;
             background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .phone-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .country-code {
+            flex: 0 0 120px;
+        }
+
+        .phone-number {
+            flex: 1;
+        }
+
+        .helper-text {
+            color: #abb1b2;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            transition: border-color 0.3s;
+            background-color: rgba(255, 255, 255, 0.08);
+            color: #e6f2f5;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #61929e;
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        select option {
+            background-color: #272626;
+            color: #e6f2f5;
         }
 
         .remember-forgot {
@@ -159,6 +203,17 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required minlength="6">
             </div>
+            <div class="input-group">
+                <label for="phone">Phone Number (Required)</label>
+                <div class="phone-input-group">
+                    <select id="country-code" class="country-code" required>
+                        <option value="+92">+92 (Pakistan)</option>
+                        <option value="+60">+60 (Malaysia)</option>
+                    </select>
+                    <input type="tel" id="phone-number" class="phone-number" placeholder="1234567890" required pattern="[0-9]{7,15}">
+                </div>
+                <div class="helper-text">Enter your phone number without the country code</div>
+            </div>
             <button type="submit" id="signup-btn">Signup</button>
         </form>
         <div class="signup-link">
@@ -170,7 +225,7 @@
     <!-- Similar structure, but with name field -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         const firebaseConfig = {
   apiKey: "AIzaSyC2rlfeMUUbfaYOOLtAE8GbLmsvNlk0hcQ",
@@ -188,31 +243,51 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const countryCode = document.getElementById('country-code').value;
+            const phoneNumber = document.getElementById('phone-number').value;
+
+            // Combine country code and phone number in E.164 format
+            const fullPhoneNumber = `${countryCode}${phoneNumber}`;
 
             try {
                 // Create user with Firebase
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
+
+                // Send email verification
+                await sendEmailVerification(user);
+
                 const idToken = await user.getIdToken();
-                
+
                 // Send to backend to create Firestore doc
                 const response = await fetch('/api/signup/expert', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         idToken: idToken,
-                        name: name 
+                        name: name,
+                        phoneNumber: fullPhoneNumber
                     })
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    window.location.href = '/expert_dashboard';
+                    // Store user type for verification page
+                    localStorage.setItem('userType', 'expert');
+
+                    // Check if email verification is required
+                    if (data.requiresEmailVerification) {
+                        // Redirect to email verification page
+                        window.location.href = '/verify-email';
+                    } else {
+                        // Old flow - direct to dashboard (for phone auth)
+                        window.location.href = '/expert_dashboard';
+                    }
                 } else {
                     alert('Signup failed: ' + data.error);
                 }

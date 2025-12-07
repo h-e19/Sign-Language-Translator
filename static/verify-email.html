@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Open Palm</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle, #050505 20%, #272626 70%, #414141 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            padding: 50px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #e6f2f5;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .email-display {
+            color: #61929e;
+            font-weight: bold;
+            margin: 20px 0;
+            font-size: 1.3rem;
+        }
+
+        .message {
+            color: #abb1b2;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .status-container {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .status-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .status-text {
+            color: #abb1b2;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #61929e;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #f0f3f6;
+            color: #063234;
+            border: 1px solid #f0f3f6;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            background-color: #61929e;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #61929e;
+            border: 2px solid #61929e;
+        }
+
+        .btn-secondary:hover {
+            background: #61929e;
+            color: #e6f2f5;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .success-message {
+            color: #51cf66;
+            background: rgba(81, 207, 102, 0.1);
+            border: 1px solid rgba(81, 207, 102, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .timer {
+            color: #abb1b2;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        .verified-icon {
+            color: #51cf66;
+        }
+
+        .waiting-icon {
+            color: #ffd43b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">✋</div>
+        <h1>Verify Your Email</h1>
+
+        <div class="email-display" id="userEmail">Loading...</div>
+
+        <div class="message">
+            We've sent a verification link to your email address. Please check your inbox and click the link to verify your account.
+        </div>
+
+        <div class="status-container">
+            <div class="spinner" id="spinner"></div>
+            <div class="status-icon waiting-icon" id="statusIcon" style="display: none;">⏳</div>
+            <div class="status-text" id="statusText">Checking verification status...</div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="button-group">
+            <button class="btn btn-primary" id="resendBtn" disabled>
+                <span id="resendText">Resend Email</span>
+                <span class="timer" id="timer"></span>
+            </button>
+            <button class="btn btn-primary" id="checkBtn" style="display: none;">
+                I've Verified My Email
+            </button>
+            <a href="/" class="btn btn-secondary">Back to Home</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged, sendEmailVerification, applyActionCode } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+
+        // Firebase configuration - MUST match signup pages
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2rlfeMUUbfaYOOLtAE8GbLmsvNlk0hcQ",
+            authDomain: "open-palm.firebaseapp.com",
+            projectId: "open-palm",
+            storageBucket: "open-palm.firebasestorage.app",
+            messagingSenderId: "174112346608",
+            appId: "1:174112346608:web:c5d6ccbc9cfb0089034d35",
+            measurementId: "G-ZJ7Y7RYSCB"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        let checkInterval;
+        let resendTimer;
+        let countdown = 60;
+
+        const spinner = document.getElementById('spinner');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        const userEmail = document.getElementById('userEmail');
+        const resendBtn = document.getElementById('resendBtn');
+        const checkBtn = document.getElementById('checkBtn');
+        const timerDisplay = document.getElementById('timer');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Check if there's an action code in URL (email verification link)
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const oobCode = urlParams.get('oobCode');
+
+        if (mode === 'verifyEmail' && oobCode) {
+            // Handle email verification
+            applyActionCode(auth, oobCode)
+                .then(() => {
+                    showSuccess('Email verified successfully! Redirecting...');
+                    setTimeout(() => {
+                        // Redirect based on user type
+                        window.location.href = '/login/learner';
+                    }, 2000);
+                })
+                .catch((error) => {
+                    showError('Verification failed: ' + error.message);
+                });
+        }
+
+        // Add a small delay to give Firebase auth time to check session
+        let authCheckTimeout;
+
+        onAuthStateChanged(auth, (user) => {
+            // Clear any pending timeout
+            if (authCheckTimeout) clearTimeout(authCheckTimeout);
+
+            if (user) {
+                userEmail.textContent = user.email;
+
+                // If already verified, redirect
+                if (user.emailVerified) {
+                    handleVerified();
+                } else {
+                    startCheckingVerification(user);
+                    startResendTimer();
+                }
+            } else {
+                // Give it 2 seconds in case auth is still loading
+                authCheckTimeout = setTimeout(() => {
+                    showError('No user logged in. Redirecting to login...');
+                    setTimeout(() => {
+                        const userType = localStorage.getItem('userType') || 'learner';
+                        window.location.href = `/login/${userType}`;
+                    }, 2000);
+                }, 2000);
+            }
+        });
+
+        function startCheckingVerification(user) {
+            spinner.style.display = 'block';
+            statusIcon.style.display = 'none';
+            statusText.textContent = 'Waiting for email verification...';
+
+            checkInterval = setInterval(async () => {
+                await user.reload();
+                if (user.emailVerified) {
+                    clearInterval(checkInterval);
+                    handleVerified();
+                }
+            }, 3000); // Check every 3 seconds
+
+            // Show manual check button after 10 seconds
+            setTimeout(() => {
+                checkBtn.style.display = 'block';
+            }, 10000);
+        }
+
+        function handleVerified() {
+            spinner.style.display = 'none';
+            statusIcon.style.display = 'block';
+            statusIcon.className = 'status-icon verified-icon';
+            statusIcon.textContent = '✓';
+            statusText.textContent = 'Email verified! Redirecting to login...';
+            statusText.style.color = '#28a745';
+
+            clearInterval(checkInterval);
+            clearInterval(resendTimer);
+
+            showSuccess('Email verified successfully!');
+
+            setTimeout(() => {
+                // Get user type from localStorage or default to learner
+                const userType = localStorage.getItem('userType') || 'learner';
+                window.location.href = `/login/${userType}`;
+            }, 2000);
+        }
+
+        function startResendTimer() {
+            countdown = 60;
+            resendBtn.disabled = true;
+
+            resendTimer = setInterval(() => {
+                countdown--;
+                timerDisplay.textContent = `(${countdown}s)`;
+
+                if (countdown <= 0) {
+                    clearInterval(resendTimer);
+                    resendBtn.disabled = false;
+                    timerDisplay.textContent = '';
+                }
+            }, 1000);
+        }
+
+        resendBtn.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            resendBtn.disabled = true;
+
+            try {
+                await sendEmailVerification(user);
+                showSuccess('Verification email sent! Please check your inbox.');
+                startResendTimer();
+            } catch (error) {
+                showError('Failed to send email: ' + error.message);
+                resendBtn.disabled = false;
+            }
+        });
+
+        checkBtn.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            checkBtn.disabled = true;
+            checkBtn.textContent = 'Checking...';
+
+            try {
+                await user.reload();
+                if (user.emailVerified) {
+                    handleVerified();
+                } else {
+                    showError('Email not yet verified. Please check your inbox.');
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = "I've Verified My Email";
+                }
+            } catch (error) {
+                showError('Error checking verification: ' + error.message);
+                checkBtn.disabled = false;
+                checkBtn.textContent = "I've Verified My Email";
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            successMessage.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

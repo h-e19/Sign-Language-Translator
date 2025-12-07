@@ -21,6 +21,11 @@ class LoginRequest(BaseModel):
 class SignupRequest(BaseModel):
     idToken: str
     name: str
+    phoneNumber: Optional[str] = None
+
+class PhoneLoginRequest(BaseModel):
+    idToken: str
+    name: Optional[str] = None  # Only needed for first-time signup
 
 class CreateTrackRequest(BaseModel):
     trackName: str
@@ -52,6 +57,10 @@ def read_signup_expert():
 def read_forgotpassword():
     return FileResponse("static/forgotpassword.html")
 
+@app.get("/verify-email")
+def read_verify_email():
+    return FileResponse("static/verify-email.html")
+
 @app.get("/tracklist")
 def read_tracklist():
     return FileResponse("static/tracklist.html")
@@ -65,22 +74,32 @@ async def login_learner(request: LoginRequest, response: Response):
     """Login for learners only"""
     try:
         result = auth.verify_token(request.idToken)
-        
+
         if result['success']:
             uid = result['uid']
+
+            # Check email verification status
+            verification_status = auth.check_email_verified(uid)
+            if verification_status['success'] and not verification_status['emailVerified']:
+                return {
+                    "success": False,
+                    "error": "Please verify your email before logging in",
+                    "requiresEmailVerification": True
+                }
+
             user_data = auth.get_user_data(uid)
-            
+
             # CHECK if they're actually a learner
             if user_data.get('type') != 'learner':
                 return {"success": False, "error": "Invalid account type. Please use expert login."}
-            
+
             response.set_cookie(
                 key="session_token",
                 value=request.idToken,
                 httponly=True,
                 max_age=3600
             )
-            
+
             return {"success": True, "userType": "learner"}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -92,22 +111,32 @@ async def login_expert(request: LoginRequest, response: Response):
     """Login for experts only"""
     try:
         result = auth.verify_token(request.idToken)
-        
+
         if result['success']:
             uid = result['uid']
+
+            # Check email verification status
+            verification_status = auth.check_email_verified(uid)
+            if verification_status['success'] and not verification_status['emailVerified']:
+                return {
+                    "success": False,
+                    "error": "Please verify your email before logging in",
+                    "requiresEmailVerification": True
+                }
+
             user_data = auth.get_user_data(uid)
-            
+
             # CHECK if they're actually an expert
             if user_data.get('type') != 'expert':
                 return {"success": False, "error": "Invalid account type. Please use learner login."}
-            
+
             response.set_cookie(
                 key="session_token",
                 value=request.idToken,
                 httponly=True,
                 max_age=3600
             )
-            
+
             return {"success": True, "userType": "expert"}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -115,51 +144,145 @@ async def login_expert(request: LoginRequest, response: Response):
         return {"success": False, "error": str(e)}
     
 @app.post("/api/signup/learner")
-async def signup_learner(request: SignupRequest, response: Response):
+async def signup_learner(request: SignupRequest):
     """Create learner Firestore document"""
     try:
         # Verify token first
         result = auth.verify_token(request.idToken)
-        
+
         if result['success']:
             uid = result['uid']
-            
-            # Create Firestore document
-            auth.create_learner_doc(uid, request.name)
-            
-            response.set_cookie(
-                key="session_token",
-                value=request.idToken,
-                httponly=True,
-                max_age=3600
-            )
-            
-            return {"success": True}
+
+            # Create Firestore document with phone number
+            create_result = auth.create_learner_doc(uid, request.name, request.phoneNumber)
+
+            if not create_result['success']:
+                raise HTTPException(status_code=400, detail=create_result['error'])
+
+            # Send verification email (Firebase handles this automatically)
+            # The email verification link is sent when user signs up with email/password
+
+            # Don't set session cookie yet - wait for email verification
+            # Return success with flag to show verification page
+            return {
+                "success": True,
+                "requiresEmailVerification": True,
+                "message": "Please check your email to verify your account"
+            }
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 @app.post("/api/signup/expert")
-async def signup_expert(request: SignupRequest, response: Response):
+async def signup_expert(request: SignupRequest):
     """Create expert Firestore document"""
     try:
         result = auth.verify_token(request.idToken)
-        
+
         if result['success']:
             uid = result['uid']
-            auth.create_expert_doc(uid, request.name)
-            
+
+            # Create Firestore document with phone number
+            create_result = auth.create_expert_doc(uid, request.name, request.phoneNumber)
+
+            if not create_result['success']:
+                raise HTTPException(status_code=400, detail=create_result['error'])
+
+            # Send verification email (Firebase handles this automatically)
+            # The email verification link is sent when user signs up with email/password
+
+            # Don't set session cookie yet - wait for email verification
+            # Return success with flag to show verification page
+            return {
+                "success": True,
+                "requiresEmailVerification": True,
+                "message": "Please check your email to verify your account"
+            }
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post("/api/login/phone")
+async def login_phone(request: PhoneLoginRequest, response: Response):
+    """Phone number login - works for both learners and experts"""
+    try:
+        result = auth.verify_token(request.idToken)
+
+        if result['success']:
+            uid = result['uid']
+            user_data = auth.get_user_data(uid)
+
+            # Get phone number from Firebase Auth user
+            firebase_user = auth.auth.get_user(uid)
+            phone_number = firebase_user.phone_number
+
+            # If user doesn't exist in Firestore with this Firebase Auth UID
+            if not user_data:
+                # Check if an existing user already has this phone number
+                existing_user = auth.find_user_by_phone(phone_number)
+
+                if existing_user:
+                    # User exists with this phone number but different Firebase Auth UID
+                    # This happens when they signed up with email and now logging in with phone
+                    existing_uid = existing_user.get('uid')
+
+                    # Create a new Firestore document for the phone auth UID
+                    # that points to the same user data
+                    user_ref = auth.db.collection('users').document(uid)
+                    user_ref.set({
+                        'type': existing_user.get('type'),
+                        'name': existing_user.get('name'),
+                        'email': existing_user.get('email'),
+                        'phoneNumber': phone_number,
+                        'authMethod': 'phone',
+                        'originalUid': existing_uid,  # Reference to original account
+                        'enrolledTracks': existing_user.get('enrolledTracks', []),
+                        'tracks': existing_user.get('tracks', []),
+                        'createdAt': existing_user.get('createdAt')
+                    })
+
+                    # Also update the original user document
+                    link_result = auth.link_phone_to_existing_user(existing_uid, phone_number)
+                    if not link_result['success']:
+                        raise HTTPException(status_code=400, detail=link_result['error'])
+
+                    # Get the newly created user data
+                    user_data = auth.get_user_data(uid)
+
+                else:
+                    # No existing user with this phone number - new user
+                    if not request.name:
+                        return {"success": False, "error": "Name required for first-time login", "requiresName": True}
+
+                    # For phone auth, default to learner
+                    user_type = "learner"
+
+                    create_result = auth.create_user_doc_phone(uid, request.name, user_type, phone_number)
+
+                    if not create_result['success']:
+                        raise HTTPException(status_code=400, detail=create_result['error'])
+
+                    user_data = auth.get_user_data(uid)
+
+            # Set session cookie with the phone auth ID token
             response.set_cookie(
                 key="session_token",
                 value=request.idToken,
                 httponly=True,
                 max_age=3600
             )
-            
-            return {"success": True}
+
+            return {"success": True, "userType": user_data.get('type')}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
     except Exception as e:
         return {"success": False, "error": str(e)}
 
