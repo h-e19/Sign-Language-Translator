@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -114,9 +115,9 @@
             tracks.forEach(track => {
                 const isEnrolled = enrolledTrackIds.includes(track.trackId);
 
-                const image = (track.mediaUrls && track.mediaUrls.length > 0)
-                    ? track.mediaUrls[0]
-                    : "/static/images/placeholder1.png";
+                const image = track.image_path 
+                    ? track.image_path 
+                    : "static/images/placeholder1.png";
 
                 container.innerHTML += `
                     <div class="card ${isEnrolled ? "enrolled" : ""}">
