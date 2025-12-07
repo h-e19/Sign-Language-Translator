@@ -51,7 +51,8 @@
 
         input[type="text"],
         input[type="email"],
-        input[type="password"] {
+        input[type="password"],
+        input[type="tel"] {
             width: 100%;
             padding: 15px;
             border: 2px solid rgba(255, 255, 255, 0.15);
@@ -64,10 +65,80 @@
 
         input[type="text"]:focus,
         input[type="email"]:focus,
-        input[type="password"]:focus {
+        input[type="password"]:focus,
+        input[type="tel"]:focus {
             outline: none;
             border-color: #61929e;
             background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .phone-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .country-code {
+            flex: 0 0 120px;
+        }
+
+        .phone-number {
+            flex: 1;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            font-size: 1.2rem;
+            background-color: rgba(255, 255, 255, 0.08);
+            color: #e6f2f5;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #61929e;
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        select option {
+            background-color: #272626;
+            color: #e6f2f5;
+        }
+
+        .toggle-login-method {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #abb1b2;
+            font-size: 1rem;
+        }
+
+        .toggle-login-method button {
+            background: none;
+            border: none;
+            color: #61929e;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            margin: 0;
+            width: auto;
+        }
+
+        .toggle-login-method button:hover {
+            color: #7ab3c0;
+            transform: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #recaptcha-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
         }
 
         .remember-forgot {
@@ -145,8 +216,15 @@
 <body>
     <div class="login-container">
         <h2>Login</h2>
+        <!-- Phone login disabled until Blaze plan is set up
+        <div class="toggle-login-method">
+            <button type="button" id="toggle-method-btn">Login with Phone Number instead</button>
+        </div>
+        -->
         <div id="error-message" style="color: #ff6b6b; margin-bottom: 15px; display: none;"></div>
-        <form id="login-form">
+
+        <!-- Email Login Form -->
+        <form id="email-login-form">
             <div class="input-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" required>
@@ -160,10 +238,38 @@
                     <input type="checkbox" id="remember" name="remember">
                     <label for="remember">Remember me</label>
                 </div>
-                <a href="/forgotpassword?type=expert" class="forgot-password">Forgot Password?</a>
+                <a href="/forgotpassword" class="forgot-password">Forgot Password?</a>
             </div>
-            <button type="submit" id="login-btn">Login</button>
+            <button type="submit" id="email-login-btn">Login with Email</button>
         </form>
+
+        <!-- Phone Login Form -->
+        <form id="phone-login-form" class="hidden">
+            <div class="input-group">
+                <label for="phone">Phone Number</label>
+                <div class="phone-input-group">
+                    <select id="country-code" class="country-code">
+                        <option value="+92">+92 (Pakistan)</option>
+                        <option value="+60">+60 (Malaysia)</option>
+                    </select>
+                    <input type="tel" id="phone-number" class="phone-number" placeholder="1234567890" pattern="[0-9]{7,15}">
+                </div>
+            </div>
+
+            <div id="recaptcha-container"></div>
+
+            <button type="submit" id="send-otp-btn">Send OTP</button>
+
+            <!-- OTP Input (hidden initially) -->
+            <div id="otp-section" class="hidden">
+                <div class="input-group">
+                    <label for="otp-code">Enter OTP</label>
+                    <input type="text" id="otp-code" placeholder="123456" maxlength="6" pattern="[0-9]{6}">
+                </div>
+                <button type="button" id="verify-otp-btn">Verify OTP</button>
+            </div>
+        </form>
+
         <div class="signup-link">
             Don't have an account? <a href="/signup/expert">Sign up</a>
         </div>
@@ -172,59 +278,194 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getAuth, signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         const firebaseConfig = {
-  apiKey: "AIzaSyC2rlfeMUUbfaYOOLtAE8GbLmsvNlk0hcQ",
-  authDomain: "open-palm.firebaseapp.com",
-  projectId: "open-palm",
-  storageBucket: "open-palm.firebasestorage.app",
-  messagingSenderId: "174112346608",
-  appId: "1:174112346608:web:c5d6ccbc9cfb0089034d35",
-  measurementId: "G-ZJ7Y7RYSCB"
+            apiKey: "AIzaSyC2rlfeMUUbfaYOOLtAE8GbLmsvNlk0hcQ",
+            authDomain: "open-palm.firebaseapp.com",
+            projectId: "open-palm",
+            storageBucket: "open-palm.firebasestorage.app",
+            messagingSenderId: "174112346608",
+            appId: "1:174112346608:web:c5d6ccbc9cfb0089034d35",
+            measurementId: "G-ZJ7Y7RYSCB"
 };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        const form = document.getElementById('login-form');
+        const emailForm = document.getElementById('email-login-form');
+        const phoneForm = document.getElementById('phone-login-form');
         const errorMessage = document.getElementById('error-message');
+        // Phone login disabled until Blaze plan
+        // const toggleBtn = document.getElementById('toggle-method-btn');
 
-        form.addEventListener('submit', async (e) => {
+        let confirmationResult = null;
+        let recaptchaVerifier = null;
+
+        // Toggle between email and phone login - DISABLED
+        /*
+        toggleBtn.addEventListener('click', () => {
+            const isEmailVisible = !emailForm.classList.contains('hidden');
+
+            if (isEmailVisible) {
+                // Switch to phone login
+                emailForm.classList.add('hidden');
+                phoneForm.classList.remove('hidden');
+                toggleBtn.textContent = 'Login with Email instead';
+
+                // Initialize reCAPTCHA if not already done
+                if (!recaptchaVerifier) {
+                    initializeRecaptcha();
+                }
+            } else {
+                // Switch to email login
+                phoneForm.classList.add('hidden');
+                emailForm.classList.remove('hidden');
+                toggleBtn.textContent = 'Login with Phone Number instead';
+            }
+        });
+        */
+
+        function initializeRecaptcha() {
+            try {
+                recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                    'size': 'normal',
+                    'callback': (response) => {
+                        console.log('reCAPTCHA solved');
+                    }
+                });
+                recaptchaVerifier.render();
+            } catch (error) {
+                console.error('reCAPTCHA error:', error);
+            }
+        }
+
+        // Email Login
+        emailForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
             try {
-                // Sign in with Firebase
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                
-                // Get ID token
+
+                await user.getIdToken(true);
                 const idToken = await user.getIdToken();
-                
-                // Send token to backend to create session
+
                 const response = await fetch('/api/login/expert', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ idToken: idToken })
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    // Redirect based on user type
                     window.location.href = '/expert_dashboard';
                 } else {
-                    errorMessage.style.display = 'block';
-                    errorMessage.textContent = data.error || 'Login failed';
+                    // Check if email verification is required
+                    if (data.requiresEmailVerification) {
+                        localStorage.setItem('userType', 'expert');
+                        window.location.href = '/verify-email';
+                    } else {
+                        errorMessage.style.display = 'block';
+                        errorMessage.textContent = data.error || 'Login failed';
+                    }
                 }
             } catch (error) {
                 errorMessage.style.display = 'block';
                 errorMessage.textContent = error.message;
+            }
+        });
+
+        // Phone Login - Send OTP
+        phoneForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const countryCode = document.getElementById('country-code').value;
+            const phoneNumber = document.getElementById('phone-number').value;
+            const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+
+            try {
+                // Send OTP
+                confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, recaptchaVerifier);
+
+                // Show OTP input
+                document.getElementById('otp-section').classList.remove('hidden');
+                document.getElementById('send-otp-btn').textContent = 'Resend OTP';
+
+                errorMessage.style.display = 'block';
+                errorMessage.style.color = '#4ade80';
+                errorMessage.textContent = 'OTP sent to your phone!';
+            } catch (error) {
+                console.error('Error sending OTP:', error);
+                errorMessage.style.display = 'block';
+                errorMessage.style.color = '#ff6b6b';
+                errorMessage.textContent = error.message;
+            }
+        });
+
+        // Verify OTP
+        document.getElementById('verify-otp-btn').addEventListener('click', async () => {
+            const otpCode = document.getElementById('otp-code').value;
+
+            if (!otpCode || otpCode.length !== 6) {
+                errorMessage.style.display = 'block';
+                errorMessage.style.color = '#ff6b6b';
+                errorMessage.textContent = 'Please enter a valid 6-digit OTP';
+                return;
+            }
+
+            try {
+                // Verify OTP
+                const result = await confirmationResult.confirm(otpCode);
+                const user = result.user;
+
+                const idToken = await user.getIdToken();
+
+                // Send to backend
+                const response = await fetch('/api/login/phone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: idToken })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Redirect based on user type
+                    if (data.userType === 'learner') {
+                        window.location.href = '/user_dashboard';
+                    } else if (data.userType === 'expert') {
+                        window.location.href = '/expert_dashboard';
+                    }
+                } else if (data.requiresName) {
+                    // First-time phone login - need name
+                    const name = prompt('Welcome! Please enter your name:');
+                    if (name) {
+                        const retryResponse = await fetch('/api/login/phone', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ idToken: idToken, name: name })
+                        });
+
+                        const retryData = await retryResponse.json();
+                        if (retryData.success) {
+                            window.location.href = '/expert_dashboard';
+                        }
+                    }
+                } else {
+                    errorMessage.style.display = 'block';
+                    errorMessage.style.color = '#ff6b6b';
+                    errorMessage.textContent = data.error || 'Login failed';
+                }
+            } catch (error) {
+                console.error('Error verifying OTP:', error);
+                errorMessage.style.display = 'block';
+                errorMessage.style.color = '#ff6b6b';
+                errorMessage.textContent = 'Invalid OTP. Please try again.';
             }
         });
     </script>
