@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .navbar {
+            background-color: white;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .navbar button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            background: #555555;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .navbar button:hover {
+            background: #333333;
+        }
+
+        .content {
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Track Header */
+        .track-header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .track-header h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .track-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* Checkpoint Progress Bar */
+        .checkpoint-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 25px 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .checkpoint-bar h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .checkpoints {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .checkpoint-line {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #e0e0e0;
+            z-index: 1;
+        }
+
+        .checkpoint-line-fill {
+            height: 100%;
+            background: #94C77F;
+            transition: width 0.5s ease;
+        }
+
+        .checkpoint {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+
+        .checkpoint-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid #e0e0e0;
+            margin: 0 auto 8px;
+            transition: all 0.3s ease;
+        }
+
+        .checkpoint.completed .checkpoint-circle {
+            background: #94C77F;
+            border-color: #94C77F;
+        }
+
+        .checkpoint.active .checkpoint-circle {
+            border-color: #94C77F;
+            box-shadow: 0 0 0 4px rgba(148, 199, 127, 0.2);
+        }
+
+        .checkpoint-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .checkpoint.completed .checkpoint-label {
+            color: #94C77F;
+            font-weight: 600;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+        }
+
+        /* Media List Sidebar */
+        .media-list {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            height: fit-content;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .media-list h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .media-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .media-item:hover {
+            background: #f9f9f9;
+        }
+
+        .media-item.active {
+            background: #e8f5e0;
+            border-color: #94C77F;
+        }
+
+        .media-item.completed {
+            background: #f0f7ed;
+        }
+
+        .media-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            flex-shrink: 0;
+        }
+
+        .media-item.completed .media-icon {
+            background: #94C77F;
+            border-color: #94C77F;
+            position: relative;
+        }
+
+        .media-item.completed .media-icon::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .media-name {
+            font-size: 14px;
+            color: #333;
+            flex: 1;
+        }
+
+        .media-item.active .media-name {
+            font-weight: 600;
+            color: #94C77F;
+        }
+
+        /* Video Player Area */
+        .video-player {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .video-container {
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .video-container video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .video-info {
+            padding: 0 10px;
+        }
+
+        .video-info h4 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .video-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .video-actions button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-complete {
+            background: #94C77F;
+            color: white;
+        }
+
+        .btn-complete:hover {
+            background: #7ab368;
+        }
+
+        .btn-complete:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-next {
+            background: #555;
+            color: white;
+        }
+
+        .btn-next:hover {
+            background: #333;
+        }
+
+        .no-media {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .no-media h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .media-list {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1 id="trackTitle">TRACK VIEWER</h1>
+        <button onclick="window.location.href = '/user_dashboard'">Back to Dashboard</button>
+    </nav>
+
+    <div class="content">
+        <!-- Track Header -->
+        <div class="track-header">
+            <h2 id="trackName">Loading...</h2>
+            <div class="track-meta">
+                <span id="trackDescription"></span> • 
+                <span>By <strong id="expertName"></strong></span>
+            </div>
+        </div>
+
+        <!-- Checkpoint Progress Bar -->
+        <div class="checkpoint-bar">
+            <h3>Your Progress: <span id="progressPercent">0%</span></h3>
+            <div class="checkpoints">
+                <div class="checkpoint-line">
+                    <div class="checkpoint-line-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="checkpoint" data-progress="0">
+                    <div class="checkpoint-circle"></div>
+                    <div class="checkpoint-label">Start</div>
+                </div>
+                <div class="checkpoint" data-progress="25">
+                    <div class="checkpoint-circle"></div>
+                    <div class="checkpoint-label">25%</div>
+                </div>
+                <div class="checkpoint" data-progress="50">
+                    <div class="checkpoint-circle"></div>
+                    <div class="checkpoint-label">50%</div>
+                </div>
+                <div class="checkpoint" data-progress="75">
+                    <div class="checkpoint-circle"></div>
+                    <div class="checkpoint-label">75%</div>
+                </div>
+                <div class="checkpoint" data-progress="100">
+                    <div class="checkpoint-circle"></div>
+                    <div class="checkpoint-label">Complete</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Media List Sidebar -->
+            <div class="media-list">
+                <h3>Course Content</h3>
+                <div id="mediaListContainer">
+                    <p style="color: #999; text-align: center; padding: 20px;">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Video Player -->
+            <div class="video-player">
+                <div id="videoPlayerContainer">
+                    <div class="no-media">
+                        <h3>Select a video to start learning</h3>
+                        <p>Choose from the course content on the left</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackId = urlParams.get('trackId');
+
+        if (!trackId) {
+            alert('No track specified');
+            window.location.href = '/user_dashboard';
+        }
+
+        let trackData = null;
+        let currentMediaIndex = -1;
+        let completedMedia = [];
+
+        async function loadTrackData() {
+            try {
+                const response = await fetch(`/api/user/tracks/${encodeURIComponent(trackId)}`);
+                if (!response.ok) throw new Error('Failed to load track');
+
+                trackData = await response.json();
+                console.log('Track data:', trackData);
+
+                completedMedia = trackData.completedMedia || [];
+
+                displayTrackInfo();
+                displayMediaList();
+                updateProgress();
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Could not load track: ' + error.message);
+                window.location.href = '/user_dashboard';
+            }
+        }
+
+        function displayTrackInfo() {
+            document.getElementById('trackTitle').textContent = trackData.track_name?.toUpperCase() || 'TRACK VIEWER';
+            document.getElementById('trackName').textContent = trackData.track_name || 'Unknown Track';
+            document.getElementById('trackDescription').textContent = trackData.description || 'No description';
+            document.getElementById('expertName').textContent = trackData.expert_name || 'Unknown Expert';
+        }
+
+        function displayMediaList() {
+            const container = document.getElementById('mediaListContainer');
+            const mediaUrls = trackData.mediaUrls || [];
+
+            if (mediaUrls.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No content available yet</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            mediaUrls.forEach((media, index) => {
+                const isCompleted = completedMedia.includes(index);
+                const mediaItem = document.createElement('div');
+                mediaItem.className = `media-item ${isCompleted ? 'completed' : ''}`;
+                mediaItem.onclick = () => loadVideo(index);
+
+                mediaItem.innerHTML = `
+                    <div class="media-icon"></div>
+                    <div class="media-name">${index + 1}. ${media.name || 'Video ' + (index + 1)}</div>
+                `;
+
+                container.appendChild(mediaItem);
+            });
+        }
+
+        function loadVideo(index) {
+            const mediaUrls = trackData.mediaUrls || [];
+            if (index < 0 || index >= mediaUrls.length) return;
+
+            currentMediaIndex = index;
+            const media = mediaUrls[index];
+
+            // Update active state in list
+            document.querySelectorAll('.media-item').forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+
+            // Display video player
+            const container = document.getElementById('videoPlayerContainer');
+            const isCompleted = completedMedia.includes(index);
+
+            container.innerHTML = `
+                <div class="video-container">
+                    <video controls id="videoPlayer" controlsList="nodownload">
+                        <source src="${media.url}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div class="video-info">
+                    <h4>${media.name || 'Video ' + (index + 1)}</h4>
+                    <div class="video-actions">
+                        <button class="btn-complete" onclick="markAsComplete()" ${isCompleted ? 'disabled' : ''}>
+                            ${isCompleted ? '✓ Completed' : 'Mark as Complete'}
+                        </button>
+                        ${index < mediaUrls.length - 1 ? '<button class="btn-next" onclick="loadVideo(' + (index + 1) + ')">Next Video →</button>' : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function markAsComplete() {
+            if (currentMediaIndex === -1) return;
+
+            if (!completedMedia.includes(currentMediaIndex)) {
+                completedMedia.push(currentMediaIndex);
+
+                // Update backend
+                try {
+                    const response = await fetch(`/api/user/tracks/${trackId}/progress`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            completedMedia: completedMedia
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to update progress');
+
+                    // Update UI
+                    displayMediaList();
+                    updateProgress();
+                    loadVideo(currentMediaIndex); // Refresh to show completed state
+
+                } catch (error) {
+                    console.error('Error updating progress:', error);
+                    alert('Could not save progress');
+                    completedMedia.pop(); // Revert
+                }
+            }
+        }
+
+        function updateProgress() {
+            const totalMedia = trackData.mediaUrls?.length || 0;
+            const completed = completedMedia.length;
+
+            const progressPercent = totalMedia > 0 ? Math.round((completed / totalMedia) * 100) : 0;
+
+            // Update progress display
+            document.getElementById('progressPercent').textContent = progressPercent + '%';
+            document.getElementById('progressFill').style.width = progressPercent + '%';
+
+            // Update checkpoints
+            const checkpoints = document.querySelectorAll('.checkpoint');
+            checkpoints.forEach(checkpoint => {
+                const threshold = parseInt(checkpoint.dataset.progress);
+                if (progressPercent >= threshold) {
+                    checkpoint.classList.add('completed');
+                    checkpoint.classList.remove('active');
+                } else if (progressPercent >= threshold - 25) {
+                    checkpoint.classList.add('active');
+                    checkpoint.classList.remove('completed');
+                } else {
+                    checkpoint.classList.remove('completed', 'active');
+                }
+            });
+        }
+
+        // Initialize
+        loadTrackData();
+    </script>
+</body>
+</html>

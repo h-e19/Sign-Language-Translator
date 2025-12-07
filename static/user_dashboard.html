@@ -117,13 +117,14 @@
             }
             
             .track-card button.start-btn {
-                color: rgb(0, 0, 0);
-                border: none;
-                padding: 8px 20px;
-                border-radius: 5px;
-                cursor: pointer;
-                margin-top: 10px;
-                background: #e0e0e0;
+                 position:static; 
+                 width:auto; 
+                 height:auto; 
+                 border-radius:9px; 
+                 padding:15px 32px; 
+                 font-size:16px; 
+                 font-weight:700;
+                 border: none;
             }
             
             .track-card button.start-btn:hover {
@@ -153,7 +154,7 @@
                 <p id="email"></p>
             </div>
 
-            <h2>My Tracks</h2>
+            <h2>Enrolled Tracks</h2>
             <div id="TrackList">
                 <p>Loading your tracks...</p>
             </div>
@@ -243,6 +244,10 @@
                 }
             }
 
+            function startTrack(trackId) {
+                window.location.href = `/enrolledtrack?trackId=${trackId}`;
+            }
+
             function displayUserInfo(user) {
                 // Get the elements directly (not from container)
                 const email = document.getElementById("email");
@@ -258,22 +263,29 @@
 
                 if(tracks.length == 0) {
                     container.innerHTML = "You are not enrolled in any tracks";
+                    return;
                 }
 
                 tracks.forEach(
                     track => {
                         const trackDiv = document.createElement("div");
-
                         trackDiv.className = "track-card";
 
+                        const ImagePath= track.image_path? track.image_path:"/static/images/placeholder1.png";
                         trackDiv.innerHTML = `
-                            <button class="remove-btn" onclick="removeTrack('${track.track_id}')">x</button>
-                            <img src="${track.image_path}" alt="${track.track_name}" style="width: 270px; height: 270px;">
-                            <p><strong style="font-size: 24px; font-weight: 700;">${track.track_name}</strong></p>                            <div style="background: #e0e0e0; border-radius: 10px; height: 20px; width: 69%; margin: 10px auto;">
+                            <img src="${ImagePath}" alt="${track.track_name}" style="width: 270px; height: 270px;">
+                            <p><strong style="font-size: 24px; font-weight: 700;">${track.track_name}</strong></p>
+                            <p style="font-size: 14px; color: #666; margin: 5px 0;">${track.description || 'No description'}</p>
+                            <p style="font-size: 12px; color: #888; margin-bottom: 10px;">By ${track.expert_name || 'Unknown Expert'}</p>
+        
+                        <div style="background: #e0e0e0; border-radius: 10px; height: 20px; width: 69%; margin: 10px auto;">
                             <div style="background: #94C77F; height: 100%; width: ${track.progress}%; border-radius: 10px;"></div>
-                            </div>
-                            <p>${track.progress}% Complete</p>
-                            <button class="start-btn" onclick="startTrack('${track.track_id}')">Start</button> 
+                        </div>
+                         <p style="margin-bottom: 15px;">${track.progress}% Complete</p>
+                        <div style="display:flex; justify-content:center; gap:15px; margin-top:10px;">
+                        <button class="start-btn" onclick="startTrack('${track.track_id}')">Start</button>
+                        <button class="remove-btn" onclick="removeTrack('${track.track_id}')" style="position:static; width:auto; height:auto; border-radius:9px; padding:15px 32px; font-size:16px; font-weight:700;">De-enroll</button>
+                        </div>
                         `;
                         container.appendChild(trackDiv);
                     }

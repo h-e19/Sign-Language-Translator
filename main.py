@@ -60,6 +60,10 @@ def read_tracklist():
 def read_trackedit():
     return FileResponse("static/trackopen.html")
 
+@app.get("/enrolledtrack")
+def read_trackedit():
+    return FileResponse("static/enrolled_track.html")
+
 @app.post("/api/login/learner")
 async def login_learner(request: LoginRequest, response: Response):
     """Login for learners only"""
@@ -256,13 +260,85 @@ async def get_user_tracks(request: Request):
         if track_info:
             track_details.append({
                 "track_id": track_info.get("trackId"),
-                "track_name": track_info.get("track_name"),
+                "track_name": track_info.get("trackName"),
+                "description":track_info.get("description"),
                 "image_path": track_info.get("image_path"),
+                "mediaUrls": track_info.get("mediaUrls", []),
+                "expert_name": track_info.get("expertName"),
+                "completedMedia": t.get("completedMedia", []),
                 "progress": t.get("progress", 0)
             })
 
     return track_details
 
+@app.get("/api/user/tracks/{track_id}")
+async def get_enrolled_track(track_id: str, request: Request):
+    """Get a specific enrolled track with full details"""
+    token = request.cookies.get("session_token")
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    result = auth.verify_token(token)
+    if not result['success']:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    learner_id = result['uid']
+    
+    # Get all enrolled tracks
+    enrolled_tracks = tracks.get_learner_tracks(learner_id)
+    
+    # Find the specific track
+    track = next((t for t in enrolled_tracks if t['trackId'] == track_id), None)
+    
+    if not track:
+        raise HTTPException(status_code=404, detail="Track not found or not enrolled")
+    
+    return {
+        "track_id": track.get("trackId"),
+        "track_name": track.get("trackName"),
+        "description": track.get("description"),
+        "image_path": track.get("image_path"),
+        "mediaUrls": track.get("mediaUrls", []),
+        "expert_name": track.get("expertName"),
+        "expert_id": track.get("expertId"),
+        "progress": track.get("progress", 0),
+        "completedMedia": track.get("completedMedia", []),
+        "enrolledAt": track.get("enrolledAt")
+    }
+
+#updating track progress
+@app.put("/api/user/tracks/{track_id}/progress")
+async def update_track_progress(track_id:str, request:Request, data:dict=Body(...)):
+    token = request.cookies.get("session_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        result = auth.verify_token(token)
+        if result['success']:
+            learner_id = result['uid']
+            completed_media = data.get('completedMedia', [])
+
+            learner_ref= db.collection('users').document(learner_id)
+            learner_data = learner_ref.get().to_dict()
+            enrolled_tracks = learner_data.get('enrolledTracks', [])
+
+            updated_tracks=[]
+            for enrollment in enrolled_tracks:
+                if enrollment['trackId'] == track_id:
+                    total_media = len(enrollment.get('mediaUrls', []))
+                    progress = round((len(completed_media)/total_media*100)) if total_media > 0 else 0
+
+                    enrollment['completedMedia'] = completed_media
+                    enrollment['progress'] = progress
+                updated_tracks.append(enrollment)
+            learner_ref.update({'enrolledTracks':updated_tracks})
+            return {"success":True, "progress":progress}
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.delete("/api/user/tracks/{track_id}")
 async def remove_track(track_id: str, request: Request):
     """Remove a track from user's enrolled tracks"""
@@ -526,3 +602,4 @@ async def update_track(track_id: str, data: dict = Body(...), request: Request =
     if not res['success']:
         raise HTTPException(status_code=400, detail=res.get('error', 'Failed to update'))
     return {"success": True}
+

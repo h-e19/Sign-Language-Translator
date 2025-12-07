@@ -89,7 +89,12 @@ def enroll_in_track(learner_id, track_id, expert_id):
         'trackId': track_id,
         'expertId': expert_id,
         'trackName': track['trackName'],
+        'description':track.get('description', ''),
+        'image_path': track.get('image_path', 'static/images/placeholder1.png'),
+        'mediaUrls': track.get('mediaUrls', []),
+        'expertName':expert_data.get("name"),
         'progress': 0,
+        'completedMedia':[],
         'enrolledAt': datetime.now()
         # 'enrolledAt': firestore.SERVER_TIMESTAMP
     }
