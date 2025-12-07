@@ -1,11 +1,125 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Open Palm</title>
+    <style>
+     body {
+      margin:0;
+      height:100vh;
+      display:flex;
+      justify-content: center;
+      align-items:center;
+      padding-top:60px;
+      background: radial-gradient(circle, #050505 20%, #272626 70%, #414141 100%);
+      color: #abb1b2;
+      font-family: monospace;
+    }
+    .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    max-width: 1200px;
+    width: 90%;
+    margin: 20px auto; 
+    }
+    .login-wrapper{
+        text-decoration: none; 
+        display: flex;
+        justify-content: center;
+        max-width: 800px;
+        width: 90%;
+        margin-top: 100px;
+        gap:40px;
+    }
+    .login-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    width: 200px;
+    background-color: #f0f3f6;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer; 
+    transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .login-box:hover {
+    transform: translateY(-5px);
+    background-color: #61929e;
+    }
+
+    .typing { /*class for typing animation*/
+      position: absolute;
+      top: 160px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 7.5rem;
+      border-right: 4px solid #dde3ee;
+      white-space: nowrap;
+      overflow: hidden;
+      width: 0;
+      animation: typing 2s steps(9, end) forwards,
+                 blink 0.8s step-end infinite;
+    }
+
+    @keyframes typing {
+      from { width:0}
+      to   { width:9ch;}
+    }
+
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+    
+    .text {
+      font-size: 1.5rem;
+      line-height: 1.6;
+      color: #e6f2f5;
+      margin: 24px auto;
+      margin-top: 240px;
+      text-align: center;
+      max-width: 1250px;
+      width: 90%;
+      padding: 30px 40px;
+      white-space: normal;
+      overflow: visible;
+      display: block;
+      word-wrap: break-word;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .logintext {
+    text-decoration: none; 
+    font-size: 1.75rem;
+    color: #063234;
+    margin-top: 12px;
+    }
+    
+  </style>
 </head>
 <body>
-    <button id="login_l" onclick="window.location.href = '/login/learner'">Learner login</button>
-   <button id="login_e" onclick="window.location.href = '/login/expert'">Expert login</button>
+    <div class="container">
+    <div class="typing">Open Palm</div>
+    <p class = "text">Open Palm is a one-of-a-kind Pakistani Sign Language learning platform designed to make communication accessible for everyone. Join our mission to bring sign language education to learners across Pakistan!</p>
+    <div class="login-wrapper">
+    <div class="login-box" onclick="window.location.href='/login/expert'">
+        <img src="/static/images/expert.svg" width="50">
+        <h3 class="logintext">Login as Expert</h3>
+    </div>
+    <div class="login-box" onclick="window.location.href='/login/learner'">
+        <img src="/static/images/learner.svg" width="50">
+        <h3 class="logintext">Login as Learner</h3>
+    </div>
     <script src="/static/app.js"></script>
+    </div>
+    </div>
+    
 </body>
 </html>
