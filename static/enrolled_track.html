@@ -13,39 +13,40 @@
 
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f5f5f5;
+            background-color: #353434;
+            min-height: 100vh;
         }
 
         .navbar {
-            background-color: white;
-            border-bottom: 2px solid #e0e0e0;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
             padding: 20px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .navbar h1 {
             font-size: 28px;
             font-weight: 600;
-            color: #333;
+            color: #e6f2f5;
         }
 
-        .navbar button {
-            padding: 10px 20px;
+        .back-btn {
+            padding: 15px 30px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 20px;
             font-weight: 500;
-            background: #555555;
-            color: white;
             transition: all 0.3s ease;
+            background: #212121;
+            color: #e6f2f5;
         }
 
-        .navbar button:hover {
-            background: #333333;
+        .back-btn:hover {
+            background: #4a7580;
         }
 
         .content {
@@ -56,39 +57,45 @@
 
         /* Track Header */
         .track-header {
-            background: white;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
             padding: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             margin-bottom: 30px;
         }
 
         .track-header h2 {
             font-size: 32px;
             font-weight: 700;
-            color: #333;
+            color: #e6f2f5;
             margin-bottom: 10px;
         }
 
         .track-meta {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
+            font-size: 16px;
+            color: #abb1b2;
+            margin-bottom: 10px;
+        }
+
+        .track-meta strong {
+            color: #e6f2f5;
         }
 
         /* Checkpoint Progress Bar */
         .checkpoint-bar {
-            background: white;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
             padding: 25px 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             margin-bottom: 30px;
         }
 
         .checkpoint-bar h3 {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
-            color: #333;
+            color: #e6f2f5;
             margin-bottom: 20px;
         }
 
@@ -106,13 +113,15 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: #e0e0e0;
+            background: rgba(255, 255, 255, 0.1);
             z-index: 1;
+            border-radius: 2px;
         }
 
         .checkpoint-line-fill {
             height: 100%;
             background: #94C77F;
+            border-radius: 2px;
             transition: width 0.5s ease;
         }
 
@@ -127,8 +136,8 @@
             width: 30px;
             height: 30px;
             border-radius: 50%;
-            background: white;
-            border: 4px solid #e0e0e0;
+            background: #353434;
+            border: 4px solid rgba(255, 255, 255, 0.1);
             margin: 0 auto 8px;
             transition: all 0.3s ease;
         }
@@ -140,12 +149,13 @@
 
         .checkpoint.active .checkpoint-circle {
             border-color: #94C77F;
+            background: #353434;
             box-shadow: 0 0 0 4px rgba(148, 199, 127, 0.2);
         }
 
         .checkpoint-label {
-            font-size: 12px;
-            color: #666;
+            font-size: 14px;
+            color: #8a9091;
             font-weight: 500;
         }
 
@@ -163,22 +173,23 @@
 
         /* Media List Sidebar */
         .media-list {
-            background: white;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             height: fit-content;
             max-height: 600px;
             overflow-y: auto;
         }
 
         .media-list h3 {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
-            color: #333;
+            color: #e6f2f5;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #e0e0e0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
         }
 
         .media-item {
@@ -194,23 +205,23 @@
         }
 
         .media-item:hover {
-            background: #f9f9f9;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .media-item.active {
-            background: #e8f5e0;
+            background: rgba(148, 199, 127, 0.1);
             border-color: #94C77F;
         }
 
         .media-item.completed {
-            background: #f0f7ed;
+            background: rgba(148, 199, 127, 0.05);
         }
 
         .media-icon {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            border: 2px solid #ccc;
+            border: 2px solid #8a9091;
             flex-shrink: 0;
         }
 
@@ -226,14 +237,14 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
+            color: #e6f2f5;
             font-size: 12px;
             font-weight: bold;
         }
 
         .media-name {
-            font-size: 14px;
-            color: #333;
+            font-size: 16px;
+            color: #abb1b2;
             flex: 1;
         }
 
@@ -244,10 +255,13 @@
 
         /* Video Player Area */
         .video-player {
-            background: white;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
         }
 
         .video-container {
@@ -272,7 +286,7 @@
         .video-info h4 {
             font-size: 24px;
             font-weight: 600;
-            color: #333;
+            color: #e6f2f5;
             margin-bottom: 15px;
         }
 
@@ -283,47 +297,55 @@
         }
 
         .video-actions button {
-            padding: 12px 24px;
+            padding: 15px 30px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             transition: all 0.3s ease;
         }
 
         .btn-complete {
             background: #94C77F;
-            color: white;
+            color: #000000;
         }
 
         .btn-complete:hover {
             background: #7ab368;
+            color: #000000;
         }
 
         .btn-complete:disabled {
-            background: #ccc;
+            background: rgba(255, 255, 255, 0.1);
+            color: #8a9091;
             cursor: not-allowed;
         }
 
         .btn-next {
-            background: #555;
-            color: white;
+            background: #ffffff;
+            color: #000000;
         }
 
         .btn-next:hover {
-            background: #333;
+            background: #94C77F;
+            color: #000000;
         }
 
         .no-media {
             text-align: center;
             padding: 60px 20px;
-            color: #999;
+            color: #8a9091;
         }
 
         .no-media h3 {
             font-size: 24px;
             margin-bottom: 10px;
+            color: #e6f2f5;
+        }
+
+        .no-media p {
+            color: #abb1b2;
         }
 
         @media (max-width: 1024px) {
@@ -339,8 +361,9 @@
 </head>
 <body>
     <nav class="navbar">
+        <button class="back-btn" onclick="window.location.href = '/user_dashboard'">← Back to Dashboard</button>
         <h1 id="trackTitle">TRACK VIEWER</h1>
-        <button onclick="window.location.href = '/user_dashboard'">Back to Dashboard</button>
+        <div style="width: 150px;"></div>
     </nav>
 
     <div class="content">
@@ -389,7 +412,7 @@
             <div class="media-list">
                 <h3>Course Content</h3>
                 <div id="mediaListContainer">
-                    <p style="color: #999; text-align: center; padding: 20px;">Loading...</p>
+                    <p style="color: #8a9091; text-align: center; padding: 20px;">Loading...</p>
                 </div>
             </div>
 
@@ -470,7 +493,7 @@
             const mediaUrls = trackData.mediaUrls || [];
 
             if (mediaUrls.length === 0) {
-                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No content available yet</p>';
+                container.innerHTML = '<p style="color: #8a9091; text-align: center; padding: 20px;">No content available yet</p>';
                 return;
             }
 

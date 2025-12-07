@@ -5,48 +5,183 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Track</title>
     <style>
-        body { font-family: Arial, sans-serif; background:#fafafa; margin:0; }
-        .topbar {
-            display:flex; justify-content:space-between; align-items:center;
-            padding:15px 20px; background:white; border-bottom:1px solid #ddd;
-            position:sticky; top:0; z-index:10;
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background: #353434; 
+            margin: 0;
+            min-height: 100vh;
         }
-        .topbar h2 { margin:0; font-size:20px; }
-        .meta { color:#666; font-size:14px; margin-top:6px; }
-        .btn { padding:8px 14px; border-radius:6px; cursor:pointer; border:none; }
-        .btn-primary { background:#007bff; color:white; }
-        .btn-outline { background:white; border:1px solid #aaa; }
+        .topbar {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            padding: 20px 40px; 
+            background: rgba(255, 255, 255, 0.05); 
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: sticky; 
+            top: 0; 
+            z-index: 10;
+        }
+        .topbar h2 { 
+            margin: 0; 
+            font-size: 28px;
+            font-weight: 600;
+            color: #e6f2f5;
+        }
+        .meta { 
+            color: #abb1b2; 
+            font-size: 16px; 
+            margin-top: 8px; 
+        }
+        .btn { 
+            padding: 15px 30px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            border: none;
+            font-size: 21px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-primary { 
+            background: #ffffff; 
+            color: #000000; 
+        }
+        .btn-primary:hover {
+            background: #94C77F;
+        }
+        .btn-outline { 
+            background: #212121; 
+            color: #e6f2f5;
+            border: none;
+        }
+        .btn-outline:hover {
+            background: #4a7580;
+        }
 
-        .content-section { padding:20px; max-width:1100px; margin:0 auto; }
+        .content-section { 
+            padding: 40px; 
+            max-width: 1400px; 
+            margin: 0 auto;
+            position: relative;
+            min-height: calc(100vh - 150px);
+        }
         .cards {
-            display:grid;
-            grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
-            gap:20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
         }
         .card {
-            background:white; border-radius:10px; padding:12px; border:1px solid #ddd;
-            box-shadow:0 2px 4px rgba(0,0,0,0.06);
-            display:flex; flex-direction:column; gap:8px;
+            background: rgba(255, 255, 255, 0.05); 
+            border-radius: 8px; 
+            padding: 20px; 
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px;
         }
-        .card video, .card img { width:100%; border-radius:8px; }
-        .card .label { font-weight:600; font-size:14px; color:#333; }
+        .card video, .card img { 
+            width: 100%; 
+            border-radius: 8px;
+            background: #000;
+        }
+        .card .label { 
+            font-weight: 600; 
+            font-size: 16px; 
+            color: #e6f2f5; 
+        }
+        .card .url-text {
+            color: #8a9091;
+            font-size: 13px;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+        }
         .popup {
-            position:fixed; right:20px; top:70px;
-            width:360px; background:white; padding:15px;
-            border-radius:10px; border:1px solid #ddd;
-            box-shadow:0 4px 12px rgba(0,0,0,0.15);
-            display:none;
+            position: fixed; 
+            right: 40px; 
+            top: 100px;
+            width: 400px; 
+            background: #2a2a2a; 
+            padding: 25px;
+            border-radius: 8px; 
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            display: none;
         }
-        .popup h3 { margin-top:0; }
+        .popup h3 { 
+            margin-top: 0;
+            color: #e6f2f5;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
         .popup input[type="text"], .popup input[type="file"] {
-            width:100%; margin-bottom:10px; padding:8px; box-sizing:border-box;
+            width: 100%; 
+            margin-bottom: 15px; 
+            padding: 12px; 
+            box-sizing: border-box;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.08);
+            color: #e6f2f5;
+            font-size: 14px;
         }
-        .track-meta { margin-bottom:18px; }
+        .popup input[type="text"]:focus, .popup input[type="file"]:focus {
+            outline: none;
+            border-color: #61929e;
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+        .popup input[type="file"] {
+            cursor: pointer;
+        }
+        .popup-buttons {
+            display: flex; 
+            gap: 10px; 
+            justify-content: flex-end;
+        }
+        .popup-buttons .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        .popup-buttons .btn-outline {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .popup-buttons .btn-outline:hover {
+            background: #b54545;
+        }
+        .popup-buttons .btn-primary {
+            background: #61929e;
+            color: #e6f2f5;
+        }
+        .popup-buttons .btn-primary:hover {
+            background: #94C77F;
+        }
+        #uploadStatus {
+            margin-top: 12px;
+            color: #abb1b2;
+            font-size: 13px;
+        }
+        .no-content {
+            color: #e6f2f5;
+            padding: 40px;
+            text-align: center;
+            font-size: 24px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
     </style>
 </head>
 <body>
     <div class="topbar">
-        <button class="btn btn-outline" onclick="goBack()">← Back</button>
+        <button class="btn btn-outline" onclick="goBack()">
+            <span style="display: inline-flex; align-items: center; gap: 8px;">
+                <span>←</span>
+                <span>Back</span>
+            </span>
+        </button>
         <div style="text-align:center;">
             <h2 id="trackTitle">Track</h2>
             <div id="trackDesc" class="meta"></div>
@@ -58,11 +193,11 @@
         <h3>Upload Video</h3>
         <input type="text" id="videoName" placeholder="Video name / label" />
         <input type="file" id="videoFile" accept="video/*" />
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <div class="popup-buttons">
             <button class="btn btn-outline" onclick="togglePopup()">Cancel</button>
             <button id="uploadBtn" class="btn btn-primary" onclick="uploadVideo()">Upload</button>
         </div>
-        <div id="uploadStatus" style="margin-top:8px; color:#666; font-size:13px;"></div>
+        <div id="uploadStatus"></div>
     </div>
 
     <div class="content-section">
@@ -97,7 +232,7 @@
             renderContentCards(media);
         } catch (e) {
             console.error("fetchTrack error:", e);
-            document.getElementById("contentCards").innerHTML = "<p style='padding:20px'>Failed to load track.</p>";
+            document.getElementById("contentCards").innerHTML = "<p class='no-content'>Failed to load track.</p>";
         }
     }
 
@@ -105,7 +240,7 @@
         const container = document.getElementById("contentCards");
         container.innerHTML = "";
         if (!mediaArray || mediaArray.length === 0) {
-            container.innerHTML = "<p style='padding:12px'>No content uploaded yet.</p>";
+            container.innerHTML = "<p class='no-content'>Oops! No content uploaded yet..</p>";
             return;
         }
 
@@ -118,7 +253,7 @@
             el.innerHTML = `
                 ${ isVideo ? `<video controls src="${url}"></video>` : `<img src="${url}" alt="${label}" />` }
                 <div class="label">${label}</div>
-                <div style="color:#666; font-size:13px; overflow-wrap: break-word; word-wrap: break-word;">${url}</div>
+                <div class="url-text">${url}</div>
             `;
             container.appendChild(el);
         });
