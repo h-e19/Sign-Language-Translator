@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+    <style>
+        body { font-family: Arial, sans-serif; background:#fafafa; margin:0; }
+        .topbar {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:15px 20px; background:white; border-bottom:1px solid #ddd;
+            position:sticky; top:0; z-index:10;
+        }
+        .topbar h2 { margin:0; font-size:20px; }
+        .meta { color:#666; font-size:14px; margin-top:6px; }
+        .btn { padding:8px 14px; border-radius:6px; cursor:pointer; border:none; }
+        .btn-primary { background:#007bff; color:white; }
+        .btn-outline { background:white; border:1px solid #aaa; }
+
+        .content-section { padding:20px; max-width:1100px; margin:0 auto; }
+        .cards {
+            display:grid;
+            grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+            gap:20px;
+        }
+        .card {
+            background:white; border-radius:10px; padding:12px; border:1px solid #ddd;
+            box-shadow:0 2px 4px rgba(0,0,0,0.06);
+            display:flex; flex-direction:column; gap:8px;
+        }
+        .card video, .card img { width:100%; border-radius:8px; }
+        .card .label { font-weight:600; font-size:14px; color:#333; }
+        .popup {
+            position:fixed; right:20px; top:70px;
+            width:360px; background:white; padding:15px;
+            border-radius:10px; border:1px solid #ddd;
+            box-shadow:0 4px 12px rgba(0,0,0,0.15);
+            display:none;
+        }
+        .popup h3 { margin-top:0; }
+        .popup input[type="text"], .popup input[type="file"] {
+            width:100%; margin-bottom:10px; padding:8px; box-sizing:border-box;
+        }
+        .track-meta { margin-bottom:18px; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <button class="btn btn-outline" onclick="goBack()">← Back</button>
+        <div style="text-align:center;">
+            <h2 id="trackTitle">Track</h2>
+            <div id="trackDesc" class="meta"></div>
+        </div>
+        <button id="uploadToggle" class="btn btn-primary" onclick="togglePopup()">Upload</button>
+    </div>
+
+    <div id="uploadPopup" class="popup" aria-hidden="true">
+        <h3>Upload Video</h3>
+        <input type="text" id="videoName" placeholder="Video name / label" />
+        <input type="file" id="videoFile" accept="video/*" />
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-outline" onclick="togglePopup()">Cancel</button>
+            <button id="uploadBtn" class="btn btn-primary" onclick="uploadVideo()">Upload</button>
+        </div>
+        <div id="uploadStatus" style="margin-top:8px; color:#666; font-size:13px;"></div>
+    </div>
+
+    <div class="content-section">
+        <div class="cards" id="contentCards"></div>
+    </div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const trackId = params.get("trackId");
+
+    if (!trackId) {
+        alert("No trackId provided in URL.");
+        throw new Error("Missing trackId");
+    }
+
+    async function fetchTrack() {
+        try {
+            const res = await fetch(`/api/expert/tracks/${encodeURIComponent(trackId)}`);
+            if (!res.ok) {
+                const err = await res.json().catch(()=>({detail:res.statusText}));
+                throw new Error(err.detail || "Failed to fetch track");
+            }
+            const data = await res.json();
+
+            const name = data.trackName || "Unnamed Track";
+            const desc = data.description || "";
+
+            document.getElementById("trackTitle").innerText = name;
+            document.getElementById("trackDesc").innerText = desc;
+
+            const media = data.mediaUrls || data.media || data.content || [];
+
+            renderContentCards(media);
+        } catch (e) {
+            console.error("fetchTrack error:", e);
+            document.getElementById("contentCards").innerHTML = "<p style='padding:20px'>Failed to load track.</p>";
+        }
+    }
+
+    function renderContentCards(mediaArray) {
+        const container = document.getElementById("contentCards");
+        container.innerHTML = "";
+        if (!mediaArray || mediaArray.length === 0) {
+            container.innerHTML = "<p style='padding:12px'>No content uploaded yet.</p>";
+            return;
+        }
+
+        mediaArray.forEach(item => {
+            const url = item.url || item.mediaUrl || item.secure_url || "";
+            const label = item.name || item.label || `Item ${item.index || ''}`;
+            const el = document.createElement("div");
+            el.className = "card";
+            const isVideo = url && (url.endsWith(".mp4") || url.includes("cloudinary") || url.includes("youtube") || url.includes("vimeo"));
+            el.innerHTML = `
+                ${ isVideo ? `<video controls src="${url}"></video>` : `<img src="${url}" alt="${label}" />` }
+                <div class="label">${label}</div>
+                <div style="color:#666; font-size:13px; overflow-wrap: break-word; word-wrap: break-word;">${url}</div>
+            `;
+            container.appendChild(el);
+        });
+    }
+
+    function goBack() {
+        window.location.href = "/expert_dashboard";
+    }
+
+    function togglePopup() {
+        const p = document.getElementById("uploadPopup");
+        const shown = p.style.display === "block";
+        p.style.display = shown ? "none" : "block";
+        p.setAttribute('aria-hidden', shown ? 'true' : 'false');
+        if (!shown) {
+            document.getElementById("videoName").focus();
+        } else {
+            document.getElementById("uploadStatus").innerText = "";
+        }
+    }
+
+    async function uploadVideo() {
+        const name = document.getElementById("videoName").value.trim();
+        const fileInput = document.getElementById("videoFile");
+        const file = fileInput.files[0];
+
+        if (!name) return alert("Please enter a name for the video.");
+        if (!file) return alert("Please select a video file.");
+
+        const uploadBtn = document.getElementById("uploadBtn");
+        const status = document.getElementById("uploadStatus");
+        uploadBtn.disabled = true;
+        status.innerText = "Uploading...";
+
+        try {
+            const form = new FormData();
+            form.append("name", name);
+            form.append("file", file);
+
+            const res = await fetch(`/api/expert/tracks/${encodeURIComponent(trackId)}/content`, {
+                method: "POST",
+                body: form
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.detail || data.error || "Upload failed");
+            }
+
+            status.innerText = "Upload complete";
+            document.getElementById("videoName").value = "";
+            fileInput.value = "";
+            togglePopup();
+            await fetchTrack();
+        } catch (err) {
+            console.error("uploadVideo error:", err);
+            status.innerText = `Error: ${err.message || err}`;
+            alert("Upload failed: " + (err.message || err));
+        } finally {
+            uploadBtn.disabled = false;
+        }
+    }
+
+    fetchTrack();
+</script>
+</body>
+</html>

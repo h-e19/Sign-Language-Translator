@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from fastapi import Body
 from pydantic import BaseModel
+from fastapi import UploadFile, File, Form, HTTPException, Request
+
 from typing import List, Optional
 import auth
 import tracks
@@ -23,6 +25,7 @@ class SignupRequest(BaseModel):
 class CreateTrackRequest(BaseModel):
     trackName: str
     description: str
+    image_path: Optional[str]
     mediaUrls: Optional[List[str]] = []
 
 @app.get("/")
@@ -53,9 +56,9 @@ def read_forgotpassword():
 def read_tracklist():
     return FileResponse("static/tracklist.html")
 
-@app.get("/trackedit")
+@app.get("/trackopen")
 def read_trackedit():
-    return FileResponse("static/trackedit.html")
+    return FileResponse("static/trackopen.html")
 
 @app.post("/api/login/learner")
 async def login_learner(request: LoginRequest, response: Response):
@@ -360,12 +363,12 @@ async def add_expert_track(track_data: CreateTrackRequest, request: Request):
             
             # Create the track
             track_result = tracks.create_track(
-                uid, 
-                track_data.trackName, 
-                track_data.description, 
-                track_data.mediaUrls
+                expert_id=uid,
+                track_name=track_data.trackName,
+                description=track_data.description,
+                image_path=track_data.image_path,
+                media_urls=track_data.mediaUrls
             )
-            
             if track_result['success']:
                 return {
                     "success": True, 
@@ -464,3 +467,62 @@ def get_track(track_id: str):
     if not track:
         raise HTTPException(status_code=404, detail="Track not found")
     return track
+
+from auth import db
+
+from cloudinary_config import cloudinary
+from cloudinary.uploader import upload as cloudinary_upload
+import shutil
+import os,tempfile
+
+@app.post("/api/expert/tracks/{track_id}/content")
+async def upload_track_content(track_id: str, request: Request, file: UploadFile, name: str = Form(...)):
+    
+    token = request.cookies.get("session_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    result = auth.verify_token(token)
+    if not result['success']:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    expert_uid = result['uid']
+
+    tmp = tempfile.NamedTemporaryFile(delete=False)
+    try:
+        with open(tmp.name, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        upload_result = cloudinary_upload(
+            tmp.name,
+            resource_type="video",
+            folder=f"tracks/{expert_uid}/{track_id}/"
+        )
+        video_url = upload_result.get("secure_url")
+        if not video_url:
+            raise HTTPException(status_code=500, detail="Upload failed")
+
+        media_obj = {"name": name, "url": video_url}
+        res = tracks.append_media_to_track(expert_uid, track_id, media_obj)
+        if not res.get("success"):
+            raise HTTPException(status_code=500, detail=res.get("error", "Failed to update track"))
+
+        return {"success": True, "url": video_url, "name": name}
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except Exception:
+            pass
+        
+@app.put("/api/expert/tracks/{track_id}")
+async def update_track(track_id: str, data: dict = Body(...), request: Request = None):
+    token = request.cookies.get("session_token") if request else None
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    result = auth.verify_token(token)
+    if not result['success']:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    expert_uid = result['uid']
+
+    res = tracks.update_track_metadata(expert_uid, track_id, data)
+    if not res['success']:
+        raise HTTPException(status_code=400, detail=res.get('error', 'Failed to update'))
+    return {"success": True}

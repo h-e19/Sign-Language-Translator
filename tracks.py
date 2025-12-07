@@ -4,11 +4,13 @@ from firebase_admin import firestore
 from datetime import datetime
 import time
 
-def create_track(expert_id, track_name, description, media_urls=None):
+def create_track(expert_id, track_name, description, image_path=None,media_urls=None):
     try:
         """Expert creates a track"""
         if media_urls is None:
-            media_urls = ["static/images/placeholder1.png"]
+            media_urls = []
+        if image_path is None: 
+            image_path="static/images/placeholder1.png"
         
         track_id = f"track_{int(time.time() * 1000)}"
         
@@ -16,6 +18,7 @@ def create_track(expert_id, track_name, description, media_urls=None):
             'trackId': track_id,
             'trackName': track_name,
             'description': description,
+            'image_path':image_path,
             'mediaUrls': media_urls,
             'createdAt': datetime.now()
         }
@@ -42,10 +45,8 @@ def delete_track(expert_id, track_id):
         expert_data = expert_doc.to_dict()
         tracks_list = expert_data.get('tracks', [])
         
-        # Filter out the track to delete
         updated_tracks = [t for t in tracks_list if t.get('trackId') != track_id]
         
-        # Update the document
         expert_ref.update({'tracks': updated_tracks})
         
         return {'success': True}
@@ -116,8 +117,10 @@ def get_track_by_id(track_id):
             if track['trackId'] == track_id:
                 return {
                     "trackId": track.get("trackId"),
-                    "track_name": track.get("trackName"),             # map correctly
-                    "image_path": track.get("mediaUrls")[0] if track.get("mediaUrls") else "static/images/placeholder1.png",
+                    "trackName": track.get("trackName"),   
+                    "description": track.get("description"), 
+                    "image_path": track.get("image_path") if track.get("image_path") else "static/images/placeholder1.png",
+                    "mediaUrls": track.get("mediaUrls", []),
                     "expertId": expert.id,
                     "expertName": expert_data.get("name")
                 }
@@ -141,3 +144,61 @@ def update_progress(learner_id, track_id, new_progress):
     learner_ref.update({'enrolledTracks': updated_tracks})
     
     return {'success': True}
+
+def append_media_to_track(expert_uid, track_id, media_obj):
+    expert_ref = db.collection("users").document(expert_uid)
+    doc = expert_ref.get()
+    if not doc.exists:
+        return {"success": False, "error": "Expert not found"}
+
+    data = doc.to_dict()
+    tracks = data.get("tracks", [])
+
+    updated = []
+    found = False
+
+    for t in tracks:
+        if t["trackId"] == track_id:
+            found = True
+
+            media = t.get("mediaUrls", [])
+            media.append({
+                "index": len(media) + 1,
+                "name": media_obj["name"],
+                "url": media_obj["url"]
+            })
+
+            t["mediaUrls"] = media
+
+        updated.append(t)
+
+    if not found:
+        return {"success": False, "error": "Track not found"}
+
+    expert_ref.update({"tracks": updated})
+
+    return {"success": True}
+
+def update_track_metadata(expert_uid, track_id, data):
+    expert_ref = db.collection("users").document(expert_uid)
+    doc = expert_ref.get()
+    if not doc.exists:
+        return {"success": False, "error": "expert not found"}
+
+    user_data = doc.to_dict()
+    tracks = user_data.get("tracks", [])
+
+    new_list = []
+    updated = False
+
+    for t in tracks:
+        if t["trackId"] == track_id:
+            updated = True
+            t.update(data)  
+        new_list.append(t)
+
+    if not updated:
+        return {"success": False, "error": "Track not found"}
+
+    expert_ref.update({"tracks": new_list})
+    return {"success": True}
