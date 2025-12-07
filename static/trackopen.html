@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Track</title>
-    <link rel="stylesheet" href="/static/css/styles.css" />
     <style>
         body { font-family: Arial, sans-serif; background:#fafafa; margin:0; }
         .topbar {
@@ -73,7 +72,6 @@
 <script>
     const params = new URLSearchParams(window.location.search);
     const trackId = params.get("trackId");
-
     if (!trackId) {
         alert("No trackId provided in URL.");
         throw new Error("Missing trackId");
@@ -183,8 +181,35 @@
             uploadBtn.disabled = false;
         }
     }
+    async function checkauth() {
+        try {
+            const response = await fetch('/api/expert');
 
-    fetchTrack();
+            if (!response.ok) {
+                window.location.href = "/";
+                return null;
+            }
+
+            const data = await response.json();
+            console.log('Expert:', data);
+            return data;
+
+        } catch (error) {
+            console.error('Error:', error);
+            window.location.href = "/";
+            return null;
+        }
+    }
+
+    async function initializeTrack(){
+        const expert = await checkauth();
+        if (expert) {
+            fetchTrack();
+        }
+
+    }
+
+    initializeTrack();
 </script>
 </body>
 </html>
