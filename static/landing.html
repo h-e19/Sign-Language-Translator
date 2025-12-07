@@ -10,17 +10,20 @@
       display:flex;
       justify-content: center;
       align-items:center;
-      background-color: #7abdce;
-      color: #074b5c;
+      padding-top:60px;
+      background: radial-gradient(circle, #050505 20%, #272626 70%, #414141 100%);
+      color: #abb1b2;
       font-family: monospace;
     }
     .container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-width: 800px;
+    justify-content: center;
+    height: 100vh;
+    max-width: 1200px;
     width: 90%;
-    margin: 50px auto; 
+    margin: 20px auto; 
     }
     .login-wrapper{
         text-decoration: none; 
@@ -28,7 +31,7 @@
         justify-content: center;
         max-width: 800px;
         width: 90%;
-        margin-top:40px;
+        margin-top: 100px;
         gap:40px;
     }
     .login-box {
@@ -50,7 +53,11 @@
     }
 
     .typing { /*class for typing animation*/
-      font-size: 2.5rem;
+      position: absolute;
+      top: 160px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 7.5rem;
       border-right: 4px solid #dde3ee;
       white-space: nowrap;
       overflow: hidden;
@@ -69,14 +76,29 @@
     }
     
     .text {
-    font-size: 1rem;
-    color: #e6f2f5;
-    margin-top: 12px;
+      font-size: 1.5rem;
+      line-height: 1.6;
+      color: #e6f2f5;
+      margin: 24px auto;
+      margin-top: 240px;
+      text-align: center;
+      max-width: 1250px;
+      width: 90%;
+      padding: 30px 40px;
+      white-space: normal;
+      overflow: visible;
+      display: block;
+      word-wrap: break-word;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     }
+
     .logintext {
     text-decoration: none; 
-    font-size: 1rem;
-    color: #083c3f;
+    font-size: 1.75rem;
+    color: #063234;
     margin-top: 12px;
     }
     
@@ -89,11 +111,11 @@
     <div class="login-wrapper">
     <div class="login-box" onclick="window.location.href='/login/expert'">
         <img src="/static/images/expert.svg" width="50">
-        <h3 class="logintext">Expert Login</h3>
+        <h3 class="logintext">Login as Expert</h3>
     </div>
     <div class="login-box" onclick="window.location.href='/login/learner'">
         <img src="/static/images/learner.svg" width="50">
-        <h3 class="logintext">Learner Login</h3>
+        <h3 class="logintext">Login as Learner</h3>
     </div>
     <script src="/static/app.js"></script>
     </div>
