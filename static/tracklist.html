@@ -82,7 +82,11 @@
     <div id="container" class="container"></div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", loadTracks);
+        document.addEventListener("DOMContentLoaded", async () => {
+            const user = await userauth();
+            if (!user) return;   // prevents loading if redirected
+            loadTracks();
+        });
         function goBack() {
             window.location.href = '/user_dashboard';
         }
@@ -135,6 +139,25 @@
                 `;
             });
         }
+        async function userauth() { 
+            try {
+                const response = await fetch('/api/user');
+
+                if (!response.ok) {
+                    window.location.href = "/"; 
+                    return null;
+                }
+                const data = await response.json();
+
+                return data;
+
+            } catch (error) {
+                console.error('Error:', error);
+                window.location.href = "/"; 
+                return null;
+            }
+        }
+
 
         async function enroll(trackId, expertId) {
             try {
