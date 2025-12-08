@@ -272,7 +272,19 @@ def check_email_verified(uid: str) -> dict:
         }
     except Exception as e:
         return {'success': False, 'error': str(e)}
-
+    
+def check_email_verified(uid: str) -> dict:
+    """Check if user's email is verified"""
+    try:
+        user = auth.get_user(uid)
+        return {
+            'success': True,
+            'emailVerified': user.email_verified,
+            'email': user.email
+        }
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+    
 def update_user_email_verification(uid: str, verified: bool) -> dict:
     """Update user email verification status"""
     try:

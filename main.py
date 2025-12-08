@@ -21,8 +21,7 @@ class LoginRequest(BaseModel):
 class SignupRequest(BaseModel):
     idToken: str
     name: str
-    phoneNumber: Optional[str] = None
-
+    
 class PhoneLoginRequest(BaseModel):
     idToken: str
     name: Optional[str] = None  # Only needed for first-time signup
@@ -74,32 +73,22 @@ async def login_learner(request: LoginRequest, response: Response):
     """Login for learners only"""
     try:
         result = auth.verify_token(request.idToken)
-
+        
         if result['success']:
             uid = result['uid']
-
-            # Check email verification status
-            verification_status = auth.check_email_verified(uid)
-            if verification_status['success'] and not verification_status['emailVerified']:
-                return {
-                    "success": False,
-                    "error": "Please verify your email before logging in",
-                    "requiresEmailVerification": True
-                }
-
             user_data = auth.get_user_data(uid)
-
+            
             # CHECK if they're actually a learner
             if user_data.get('type') != 'learner':
                 return {"success": False, "error": "Invalid account type. Please use expert login."}
-
+            
             response.set_cookie(
                 key="session_token",
                 value=request.idToken,
                 httponly=True,
                 max_age=3600
             )
-
+            
             return {"success": True, "userType": "learner"}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -111,32 +100,22 @@ async def login_expert(request: LoginRequest, response: Response):
     """Login for experts only"""
     try:
         result = auth.verify_token(request.idToken)
-
+        
         if result['success']:
             uid = result['uid']
-
-            # Check email verification status
-            verification_status = auth.check_email_verified(uid)
-            if verification_status['success'] and not verification_status['emailVerified']:
-                return {
-                    "success": False,
-                    "error": "Please verify your email before logging in",
-                    "requiresEmailVerification": True
-                }
-
             user_data = auth.get_user_data(uid)
-
+            
             # CHECK if they're actually an expert
             if user_data.get('type') != 'expert':
                 return {"success": False, "error": "Invalid account type. Please use learner login."}
-
+            
             response.set_cookie(
                 key="session_token",
                 value=request.idToken,
                 httponly=True,
                 max_age=3600
             )
-
+            
             return {"success": True, "userType": "expert"}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -144,67 +123,51 @@ async def login_expert(request: LoginRequest, response: Response):
         return {"success": False, "error": str(e)}
     
 @app.post("/api/signup/learner")
-async def signup_learner(request: SignupRequest):
+async def signup_learner(request: SignupRequest, response: Response):
     """Create learner Firestore document"""
     try:
         # Verify token first
         result = auth.verify_token(request.idToken)
-
+        
         if result['success']:
             uid = result['uid']
-
-            # Create Firestore document with phone number
-            create_result = auth.create_learner_doc(uid, request.name, request.phoneNumber)
-
-            if not create_result['success']:
-                raise HTTPException(status_code=400, detail=create_result['error'])
-
-            # Send verification email (Firebase handles this automatically)
-            # The email verification link is sent when user signs up with email/password
-
-            # Don't set session cookie yet - wait for email verification
-            # Return success with flag to show verification page
-            return {
-                "success": True,
-                "requiresEmailVerification": True,
-                "message": "Please check your email to verify your account"
-            }
+            
+            # Create Firestore document
+            auth.create_learner_doc(uid, request.name)
+            
+            response.set_cookie(
+                key="session_token",
+                value=request.idToken,
+                httponly=True,
+                max_age=3600
+            )
+            
+            return {"success": True}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except HTTPException:
-        raise
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 @app.post("/api/signup/expert")
-async def signup_expert(request: SignupRequest):
+async def signup_expert(request: SignupRequest, response: Response):
     """Create expert Firestore document"""
     try:
         result = auth.verify_token(request.idToken)
-
+        
         if result['success']:
             uid = result['uid']
-
-            # Create Firestore document with phone number
-            create_result = auth.create_expert_doc(uid, request.name, request.phoneNumber)
-
-            if not create_result['success']:
-                raise HTTPException(status_code=400, detail=create_result['error'])
-
-            # Send verification email (Firebase handles this automatically)
-            # The email verification link is sent when user signs up with email/password
-
-            # Don't set session cookie yet - wait for email verification
-            # Return success with flag to show verification page
-            return {
-                "success": True,
-                "requiresEmailVerification": True,
-                "message": "Please check your email to verify your account"
-            }
+            auth.create_expert_doc(uid, request.name)
+            
+            response.set_cookie(
+                key="session_token",
+                value=request.idToken,
+                httponly=True,
+                max_age=3600
+            )
+            
+            return {"success": True}
         else:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except HTTPException:
-        raise
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -285,6 +248,7 @@ async def login_phone(request: PhoneLoginRequest, response: Response):
         raise
     except Exception as e:
         return {"success": False, "error": str(e)}
+
 
 # Protected routes - ONLY ONE DEFINITION EACH
 @app.get("/user_dashboard")
@@ -379,13 +343,85 @@ async def get_user_tracks(request: Request):
         if track_info:
             track_details.append({
                 "track_id": track_info.get("trackId"),
-                "track_name": track_info.get("track_name"),
+                "track_name": track_info.get("trackName"),
+                "description":track_info.get("description"),
                 "image_path": track_info.get("image_path"),
+                "mediaUrls": track_info.get("mediaUrls", []),
+                "expert_name": track_info.get("expertName"),
+                "completedMedia": t.get("completedMedia", []),
                 "progress": t.get("progress", 0)
             })
 
     return track_details
 
+@app.get("/api/user/tracks/{track_id}")
+async def get_enrolled_track(track_id: str, request: Request):
+    """Get a specific enrolled track with full details"""
+    token = request.cookies.get("session_token")
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    result = auth.verify_token(token)
+    if not result['success']:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    learner_id = result['uid']
+    
+    # Get all enrolled tracks
+    enrolled_tracks = tracks.get_learner_tracks(learner_id)
+    
+    # Find the specific track
+    track = next((t for t in enrolled_tracks if t['trackId'] == track_id), None)
+    
+    if not track:
+        raise HTTPException(status_code=404, detail="Track not found or not enrolled")
+    
+    return {
+        "track_id": track.get("trackId"),
+        "track_name": track.get("trackName"),
+        "description": track.get("description"),
+        "image_path": track.get("image_path"),
+        "mediaUrls": track.get("mediaUrls", []),
+        "expert_name": track.get("expertName"),
+        "expert_id": track.get("expertId"),
+        "progress": track.get("progress", 0),
+        "completedMedia": track.get("completedMedia", []),
+        "enrolledAt": track.get("enrolledAt")
+    }
+
+#updating track progress
+@app.put("/api/user/tracks/{track_id}/progress")
+async def update_track_progress(track_id:str, request:Request, data:dict=Body(...)):
+    token = request.cookies.get("session_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        result = auth.verify_token(token)
+        if result['success']:
+            learner_id = result['uid']
+            completed_media = data.get('completedMedia', [])
+
+            learner_ref= db.collection('users').document(learner_id)
+            learner_data = learner_ref.get().to_dict()
+            enrolled_tracks = learner_data.get('enrolledTracks', [])
+
+            updated_tracks=[]
+            for enrollment in enrolled_tracks:
+                if enrollment['trackId'] == track_id:
+                    total_media = len(enrollment.get('mediaUrls', []))
+                    progress = round((len(completed_media)/total_media*100)) if total_media > 0 else 0
+
+                    enrollment['completedMedia'] = completed_media
+                    enrollment['progress'] = progress
+                updated_tracks.append(enrollment)
+            learner_ref.update({'enrolledTracks':updated_tracks})
+            return {"success":True, "progress":progress}
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.delete("/api/user/tracks/{track_id}")
 async def remove_track(track_id: str, request: Request):
     """Remove a track from user's enrolled tracks"""
